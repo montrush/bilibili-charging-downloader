@@ -1,0 +1,15 @@
+web/node_modules/
+web/src/
+web/.vite/
+*.pyc
+__pycache__/
+.git/
+.gitignore
+bili_cookie.txt
+BBDown.data
+BBDown.exe
+downloads/
+*.log
+*.png
+docs/
+handoff*.md

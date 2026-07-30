@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>bilibili-charging-downloader</Name>
+  <Repository>ghcr.io/montrush/bilibili-charging-downloader:latest</Repository>
+  <Registry>https://github.com/montrush/bilibili-charging-downloader/pkgs/container/bilibili-charging-downloader</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/montrush/bilibili-charging-downloader/issues</Support>
+  <Project>https://github.com/montrush/bilibili-charging-downloader</Project>
+  <Overview>B站充电视频下载器&#13;
+解决BBDown 1.6.3 login假成功bug, 直接调B站API从Set-Cookie提取cookie&#13;
+支持充电专属视频完整下载(非5分钟试看), UGC合集批量下载&#13;
+&#13;
+使用: 启动后访问WebUI -> 扫码登录B站账号(需已充电) -> 粘贴链接 -> 选集 -> 下载</Overview>
+  <Category>MediaApp:Video Productivity:Tools</Category>
+  <WebUI>http://[IP]:[PORT:8000]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/montrush/bilibili-charging-downloader/main/unraid/bilibili-charging-downloader.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/montrush/bilibili-charging-downloader/main/docs/icon.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <Requires>启动后在WebUI扫码登录B站账号(已充电)才能下载充电视频完整版. BBDown和ffmpeg已内置.</Requires>
+  <Config Name="WebUI端口" Target="8000" Default="8000" Mode="tcp" Description="Web访问端口" Type="Port" Display="always" Required="true" Mask="false">8000</Config>
+  <Config Name="配置目录" Target="/config" Default="/mnt/user/appdata/bili-downloader" Mode="rw" Description="cookie等配置(持久化)" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/bili-downloader</Config>
+  <Config Name="下载目录" Target="/downloads" Default="/mnt/user/appdata/bili-downloader/downloads" Mode="rw" Description="下载的视频输出目录" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/bili-downloader/downloads</Config>
+</Container>

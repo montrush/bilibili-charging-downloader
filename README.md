@@ -1,144 +1,130 @@
 # B站充电视频下载器
 
-下载B站**充电专属视频完整版**，支持 **UGC合集批量下载**，文件名自带发布日期。
+下载B站**充电专属视频完整版**，支持 **UGC合集批量下载**，带 **Web前端**（扫码登录 + 选集下载 + 实时进度），可 **Docker部署**（Unraid兼容）。
 
 > 解决 [BBDown](https://github.com/nilaoda/BBDown) 1.6.3 登录失效问题：B站改版后 `BBDown login` 假成功（SESSDATA 永远为空），本工具直接调用B站扫码登录 API，从 `Set-Cookie` 响应头提取 cookie，再用 BBDown 下载充电视频完整版。
 
-## 背景
-
-[BBDown](https://github.com/nilaoda/BBDown) 是优秀的B站下载工具，但 1.6.3（2024-08-14，已停更）存在登录 bug：
-
-- B站扫码登录的 `poll` 接口返回 `code=0` 时，cookie 现在通过 **`Set-Cookie` 响应头**下发
-- 而 `data.url` 里**不再包含** `SESSDATA` 等字段（只有 `ticket`）
-- BBDown 1.6.3 只从 `data.url` 解析 cookie → 永远拿不到 SESSDATA → 报"登录成功"但实际未登录
-- 未登录下载充电视频只能拿到 **5分钟试看片段**（720P），而非完整视频（1080P）
-
-本工具绕过 BBDown 的 login，直接调B站 API 完成扫码登录，提取 cookie 后传给 BBDown 下载。
-
 ## 功能
 
-- ✅ **充电视频完整下载**：扫码登录后下载充电专属视频的完整版（非5分钟试看）
-- ✅ **UGC合集批量下载**：自动获取合集全部视频，逐个下载（BBDown 1.6.3 不认合集 URL，本工具用 API 取 aid 列表）
+- ✅ **充电视频完整下载**：扫码登录后下载充电专属视频完整版（非5分钟试看），1080P
+- ✅ **UGC合集批量下载**：自动获取合集全部视频，逐个下载
+- ✅ **Web前端**：浏览器操作，扫码登录 + 链接解析 + 复选框选集（默认全选）+ 路径选择 + 实时进度
+- ✅ **Docker部署**：一键容器化，Unraid 模板支持
 - ✅ **文件名带发布日期**：`视频标题_2026-07-29_20-16-56.mp4`
-- ✅ **断点续传**：按 aid 记录已下载视频，中断后可接着跑
-- ✅ **二维码登录**：生成二维码图片，手机扫码即可，无需手动复制 cookie
+- ✅ **断点续传**：按 aid 记录已下载视频
 
-## 安装
+## 快速开始
 
-### 1. 下载 BBDown
-
-从 [BBDown Releases](https://github.com/nilaoda/BBDown/releases) 下载 `BBDown.exe`（Windows）或对应平台版本，放到本项目目录，或加入系统 PATH。
-
-### 2. 安装 Python 依赖
+### 方式一：Docker（推荐）
 
 ```bash
-pip install -r requirements.txt
+docker run -d \
+  --name bili-downloader \
+  -p 8000:8000 \
+  -v $(pwd)/config:/config \
+  -v $(pwd)/downloads:/downloads \
+  --restart unless-stopped \
+  ghcr.io/montrush/bilibili-charging-downloader:latest
 ```
 
-需要 Python 3.8+，依赖：`requests`、`qrcode`、`Pillow`。
+或用 docker-compose：
+```bash
+docker compose up -d
+```
 
-### 3. 确认 ffmpeg 可用（可选但推荐）
+启动后访问 `http://localhost:8000`。
 
-BBDown 合并视频/音频需要 ffmpeg。确认 `ffmpeg` 在 PATH 中：
+### 方式二：Unraid 部署
+
+1. Unraid -> Apps -> 搜索 `bilibili-charging-downloader`（或手动添加模板）
+2. 设置 WebUI端口、配置目录(`/mnt/user/appdata/bili-downloader`)、下载目录
+3. 安装后访问 `http://<Unraid-IP>:8000`
+
+> 模板文件：`unraid/bilibili-charging-downloader.xml`
+
+### 方式三：Windows 原生运行（无需Docker）
+
+1. 安装 [Python 3.8+](https://python.org)、[Node.js 20+](https://nodejs.org)、[ffmpeg](https://ffmpeg.org)
+2. 下载 [BBDown.exe](https://github.com/nilaoda/BBDown/releases) 放到项目根目录
+3. 双击运行 `run_windows.bat`
+
+### 方式四：开发模式
 
 ```bash
-ffmpeg -version
+# 后端
+pip install -r server/requirements.txt
+python -m uvicorn server.main:app --port 8000 --reload
+
+# 前端(另一个终端)
+cd web
+npm install
+npm run dev    # http://localhost:5173 (代理到8000)
 ```
 
-没有的话从 [ffmpeg.org](https://ffmpeg.org/download.html) 下载。
+## 使用说明
 
-## 使用
-
-### 第一步：扫码登录（一次性）
-
-```bash
-python bili_login.py
-```
-
-- 生成 `bilibili_qr.png` 二维码图片
-- **双击打开**该图片，用**手机B站APP**扫码 → 点"确认登录"
-- 登录成功后 cookie 自动保存到 `bili_cookie.txt`
-- ⚠️ 二维码 3 分钟过期，过期重跑即可
-- ⚠️ 必须用**已充电的B站账号**登录，否则充电视频仍只能下试看
-
-### 第二步：下载视频
-
-```bash
-# 下载整个合集（自动获取全部集数，逐个下载）
-python bili_download.py https://b23.tv/xxxxx
-
-# 只看合集信息不下载（确认集数/清晰度）
-python bili_download.py https://b23.tv/xxxxx --info
-
-# 下载单视频指定集
-python bili_download.py https://b23.tv/xxxxx -p 1,2,3
-
-# 指定cookie文件
-python bili_download.py https://b23.tv/xxxxx --cookie /path/to/cookie.txt
-```
-
-视频输出到 `downloads/` 目录，文件名格式：`视频标题_2026-07-29_20-16-56.mp4`
+1. **扫码登录**：打开 WebUI，用手机B站APP扫描页面二维码并确认登录
+   - ⚠️ 必须用**已充电的B站账号**，否则充电视频仍只能下试看
+2. **粘贴链接**：在输入框粘贴B站链接（`b23.tv/xxx`、BV号、合集链接）
+3. **解析**：点击解析按钮，自动列出合集所有视频
+4. **选集**：复选框选择要下载的视频（默认全选），可全选/全不选
+5. **下载**：设置下载路径，点击下载按钮，实时查看进度
 
 ## 工作原理
 
-### 登录流程（`bili_login.py`）
+### 登录（解决BBDown bug）
 
 ```
-1. GET /x/passport-login/web/qrcode/generate  → 获取 qrcode_key + 二维码URL
-2. qrcode 库生成二维码图片
-3. 轮询 GET /x/passport-login/web/qrcode/poll?qrcode_key=xxx
-   - code=86101 未扫码
-   - code=86090 已扫码未确认
-   - code=0    登录成功 ← cookie在Set-Cookie响应头!
-4. 从 r.cookies 提取 SESSDATA/bili_jct/DedeUserID，保存为cookie字符串
+B站扫码登录 poll API 返回 code=0 时:
+  data.url  -> 只含 ticket (BBDown 1.6.3 从这里解析, 永远空)
+  Set-Cookie -> 含 SESSDATA等cookie (本工具从这里提取)
 ```
 
-关键点：B站改版后 `data.url` 只含 `ticket`，真正的 cookie 在 **`Set-Cookie` 响应头**里。本工具用 `requests` 的 `r.cookies` 自动解析响应头，这是 BBDown 1.6.3 没跟上的地方。
+本工具用 Python `requests` 的 `r.cookies`（自动解析 Set-Cookie 响应头）提取 cookie，这是 BBDown 1.6.3 没跟上的地方。
 
-### 合集下载流程（`bili_download.py`）
+### 合集下载
+
+BBDown 1.6.3 不认合集 URL，本工具用 B站 API `ugc_season` 获取全部 aid + pubdate，逐个调用 BBDown 下载。
+
+## 项目结构
 
 ```
-1. 解析短链 → aid
-2. GET /x/web-interface/view?aid=xxx → 获取视频信息 + ugc_season
-3. 从 ugc_season.sections.episodes 提取全部 aid + pubdate
-4. 逐个调用 BBDown av$aid -c cookie -F "<videoTitle>_<videoDate>"
-5. 按 aid 记录已下载（断点续传）
+├── server/                 # FastAPI后端
+│   ├── main.py            # API应用
+│   ├── routers/           # login/parse/download路由
+│   ├── services/          # bili_auth(登录) + bili_dl(解析下载)
+│   └── task_manager.py    # 下载任务管理(后台线程+进度)
+├── web/                    # React前端(Ant Design)
+│   ├── src/pages/         # LoginPage + DownloadPage
+│   └── dist/              # 构建产物
+├── Dockerfile             # Linux Docker(Unraid兼容)
+├── docker-compose.yml
+├── run_windows.bat        # Windows原生运行
+├── unraid/                # Unraid部署模板
+├── .github/workflows/     # CI: 自动构建Docker镜像到GHCR
+├── bili_login.py          # 命令行版登录(独立使用)
+├── bili_download.py       # 命令行版下载(独立使用)
+└── requirements.txt       # 命令行版依赖
 ```
-
-BBDown 1.6.3 不认 `medialist/mlxxx` 合集 URL（报 `Arg_KeyNotFound`），也不认 UP主空间 URL，所以用 API 取 aid 列表逐个下载。
 
 ## 常见问题
 
 **Q: 下载的充电视频只有5分钟？**
-A: cookie 没生效。检查：1) `bili_cookie.txt` 是否存在且 `SESSDATA` 非空；2) 登录的B站账号是否已给UP主充电；3) 重新跑 `bili_login.py`。
+A: cookie没生效。检查：1)是否扫码登录成功；2)登录的账号是否已给UP主充电；3)cookie是否过期（重新扫码）。
 
-**Q: `bili_login.py` 显示登录成功但 SESSDATA 为空？**
-A: 不应该出现。本工具从 `Set-Cookie` 响应头提取（不依赖 `data.url`）。如果仍为空，检查网络或B站API是否再次变更。
+**Q: Docker里下载的视频在哪？**
+A: 在挂载的 `/downloads` 目录（docker-compose.yml 里映射到 `./downloads`）。
+
+**Q: Unraid上BBDown/ffmpeg需要单独装吗？**
+A: 不需要，Docker镜像已内置。
 
 **Q: 合集只下了1集？**
-A: 用 `--info` 先确认合集结构。本工具会自动下载合集全部视频。
-
-**Q: 文件名里的日期是什么？**
-A: 视频发布日期时间，格式 `YYYY-MM-DD_HH-MM-SS`，由 BBDown 的 `<videoDate>` 占位符生成。
-
-**Q: BBDown 报 "未登录B站账号"？**
-A: 这是 BBDown 自己的 login 没成功（已知 bug），不影响下载。只要 `bili_cookie.txt` 有效，本工具会用 `-c` 参数传 cookie 给 BBDown，充电视频能正常下载。
-
-## 文件说明
-
-| 文件 | 说明 |
-|------|------|
-| `bili_login.py` | 扫码登录，生成 cookie（核心：从 Set-Cookie 提取） |
-| `bili_download.py` | 下载视频/合集，调用 BBDown + cookie |
-| `bili_cookie.txt` | 登录态（**gitignore，勿提交**） |
-| `bilibili_qr.png` | 登录二维码（**gitignore**） |
-| `downloads/` | 视频输出目录（**gitignore**） |
-| `download_done.txt` | 已下载 aid 记录，断点续传（**gitignore**） |
+A: 不会，本工具自动获取合集全部视频。用"解析"按钮先看合集结构。
 
 ## 致谢
 
-- [BBDown](https://github.com/nilaoda/BBDown) - 强大的B站下载工具，本项目基于它下载视频
-- B站扫码登录 API
+- [BBDown](https://github.com/nilaoda/BBDown) - B站下载引擎
+- [Ant Design](https://ant.design) - 前端UI组件
 
 ## License
 

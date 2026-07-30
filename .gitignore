@@ -2,6 +2,7 @@
 bili_cookie.txt
 BBDown.data
 *.data
+config/
 
 # 二维码图片(含登录信息)
 *.png
@@ -15,6 +16,10 @@ batch_download*.log
 login*.log
 info*.txt
 help.txt
+server_stdout.log
+server_stderr.log
+finalize.log
+watcher.log
 
 # 下载的视频和进度文件
 downloads/
@@ -24,6 +29,11 @@ preview_aids.json
 
 # BBDown二进制(第三方工具, 不打包, README提供下载链接)
 BBDown.exe
+BBDown
+
+# 前端依赖和构建产物(CI会重新构建)
+web/node_modules/
+web/dist/
 
 # Python
 __pycache__/
@@ -35,3 +45,7 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/
+.idea/

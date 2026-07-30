@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  bili-downloader:
+    build: .
+    image: bilibili-charging-downloader:latest
+    container_name: bili-downloader
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config:/config        # cookie等配置(持久化)
+      - ./downloads:/downloads  # 下载的视频(持久化)
+    environment:
+      - BILI_CONFIG_DIR=/config
+      - BILI_DOWNLOAD_DIR=/downloads
+    restart: unless-stopped
