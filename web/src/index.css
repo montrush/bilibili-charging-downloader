@@ -27,7 +27,7 @@ body {
   height: min(52vh, 560px); user-select: none;
   border-radius: 18px 18px 0 0; /* 矩形画作素材圆角融入玻璃风 */
   box-shadow: 0 -8px 32px rgba(0,0,0,.18);
-  animation: mascotIn .9s cubic-bezier(.22,1,.36,1) both;
+  animation: mascotIn .9s cubic-bezier(.22,1,.36,1) backwards;
 }
 @keyframes mascotIn {
   from { transform: translateY(40px); opacity: 0; }
@@ -248,7 +248,9 @@ body {
   from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.anim-enter { animation: fadeInUp .55s cubic-bezier(.22, .8, .32, 1) both; }
+/* fill-mode用backwards而非both: forwards会永久保留结束帧transform,
+   让每个卡片变成独立堆叠上下文, 导致卡片内的弹层(分页下拉等)被后面的卡片盖住 */
+.anim-enter { animation: fadeInUp .55s cubic-bezier(.22, .8, .32, 1) backwards; }
 .anim-delay-1 { animation-delay: .08s; }
 .anim-delay-2 { animation-delay: .16s; }
 .anim-delay-3 { animation-delay: .24s; }
