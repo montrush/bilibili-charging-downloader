@@ -14,7 +14,7 @@
 ## ffmpeg
 
 - **用途**: 音视频流合并封装 (BBDown 调用)
-- **来源**: https://ffmpeg.org （Windows 构建来自 https://www.gyan.dev/ffmpeg/builds/,Linux 构建来自 https://johnvansickle.com/ffmpeg/)
+- **来源**: https://ffmpeg.org （Windows 构建来自 https://www.gyan.dev/ffmpeg/builds/,Linux 构建来自 https://github.com/BtbN/FFmpeg-Builds)
 - **许可证**: LGPL v2.1+ / GPL v2+（依构建配置）
 - ffmpeg 源代码可从上述官网获取
 

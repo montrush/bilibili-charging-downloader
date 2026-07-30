@@ -61,14 +61,20 @@ jobs:
       - name: "冒烟: exe 启动检查"
         shell: pwsh
         run: |
-          $p = Start-Process "dist\BiliDownloader\BiliDownloader.exe" -PassThru -WindowStyle Hidden
+          $p = Start-Process "dist\BiliDownloader\BiliDownloader.exe" -PassThru -WindowStyle Hidden `
+               -RedirectStandardOutput smoke-out.txt -RedirectStandardError smoke-err.txt
           $ok = $false
           foreach ($i in 1..30) {
             Start-Sleep 2
+            if ($p.HasExited) { Write-Host "exe 提前退出, ExitCode=$($p.ExitCode)"; break }
             try { $r = Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/health" -TimeoutSec 2; $ok = $true; break } catch {}
           }
-          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-          if (-not $ok) { throw "exe 冒烟失败: /api/health 不通" }
+          if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
+          if (-not $ok) {
+            Write-Host "=== smoke-out ==="; Get-Content smoke-out.txt -ErrorAction SilentlyContinue
+            Write-Host "=== smoke-err ==="; Get-Content smoke-err.txt -ErrorAction SilentlyContinue
+            throw "exe 冒烟失败: /api/health 不通"
+          }
           Write-Host "冒烟通过"
 
       - name: 便携版 zip
@@ -124,11 +130,11 @@ jobs:
           chmod +x vendor/BBDown
           ls -la vendor
 
-      - name: 下载 ffmpeg (static)
+      - name: 下载 ffmpeg (BtbN GitHub构建)
         run: |
-          curl -fL -o /tmp/ffmpeg.tar.xz "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
-          tar -xJf /tmp/ffmpeg.tar.xz -C /tmp
-          cp /tmp/ffmpeg-*-amd64-static/ffmpeg /tmp/ffmpeg-*-amd64-static/ffprobe vendor/
+          curl -fL -o /tmp/ffmpeg.zip "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.zip"
+          unzip -o /tmp/ffmpeg.zip -d /tmp/ff
+          cp /tmp/ff/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg /tmp/ff/ffmpeg-master-latest-linux64-gpl/bin/ffprobe vendor/
           chmod +x vendor/ffmpeg vendor/ffprobe
 
       - name: PyInstaller 打包
