@@ -71,3 +71,4 @@ Thumbs.db
 vendor/
 dist/
 build/
+.venv-build/
