@@ -16,6 +16,8 @@ export interface Skin {
   bgImage?: string
   /** 背景图不透明度 (默认0.32) */
   bgImageOpacity?: number
+  /** 背景图定位 (默认center, 竖版图用 'center 30%' 等) */
+  bgPosition?: string
   /** SD生成的看板娘 (public/下的路径, 右下角立绘) */
   mascot?: string
   /** 注入到 :root 的 CSS 变量 */
@@ -165,6 +167,9 @@ export const SKINS: Skin[] = [
     id: 'sapphire',
     name: '曜蓝',
     mode: 'dark',
+    bgImage: '/skins/sapphire/bg.webp',
+    bgImageOpacity: 0.28,
+    bgPosition: 'center 30%',
     preview: 'linear-gradient(135deg,#7aa5f8,#1e3a6e)',
     vars: {
       '--skin-bg': 'linear-gradient(160deg,#0a0f1d 0%,#0d1526 55%,#090e1a 100%)',

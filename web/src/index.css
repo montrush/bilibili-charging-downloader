@@ -25,6 +25,8 @@ body {
 .skin-mascot {
   position: fixed; right: 12px; bottom: 0; z-index: 0; pointer-events: none;
   height: min(52vh, 560px); user-select: none;
+  border-radius: 18px 18px 0 0; /* 矩形画作素材圆角融入玻璃风 */
+  box-shadow: 0 -8px 32px rgba(0,0,0,.18);
   animation: mascotIn .9s cubic-bezier(.22,1,.36,1) both;
 }
 @keyframes mascotIn {

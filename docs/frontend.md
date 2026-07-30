@@ -57,6 +57,15 @@ cd D:\Drawing\sd-webui-aki-v4.7 && python\python.exe launch.py --api --port 7860
 - 已生成: railgun(夜空都市电弧+Q版茶发少女) / tokiwadai(银杏长廊+Q版校服少女)
 - 角色为原创设计, 无版权素材, 可发GitHub
 
+### 用户画作素材 (2026-07-30晚, 替换部分SD素材)
+
+用户自己的画放 `pic/`(不提交git), 挑选后转webp进 `web/public/skins/`:
+- railgun/mascot = ca9cb1a9 光翼美琴指前方(深蓝夜空+金光翼, 和电弧配色一体)
+- tokiwadai/mascot = 835275ee 冷脸校服美琴(城市背景, 成熟画风)
+- sapphire/bg = du_q90_hm.jpeg 青蓝巨浪灯塔(注意同名 .jfif 是帆船峡谷, 别搞混)
+- `bgPosition` 字段控制背景定位(竖版图用 'center 30%')
+- ⚠️本session教训: Read工具多次把图片显示错位/张冠李戴, 看大图挑素材必须用"文件名烧进画面"的contact sheet(`shots/pic_contact_sheet.jpg`), 或MSE对拍验证 webp==源文件
+
 ## 截图工具
 
 `tools/ui_screenshot.py` — Edge headless + CDP, 支持注入JS/设localStorage/整页截图:

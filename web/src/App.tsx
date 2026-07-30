@@ -29,7 +29,11 @@ export default function App() {
       {skin.bgImage && (
         <div
           className="skin-bg-img"
-          style={{ backgroundImage: `url(${skin.bgImage})`, opacity: skin.bgImageOpacity ?? 0.32 }}
+          style={{
+            backgroundImage: `url(${skin.bgImage})`,
+            opacity: skin.bgImageOpacity ?? 0.32,
+            backgroundPosition: skin.bgPosition ?? 'center',
+          }}
         />
       )}
       <div className="bg-orbs">
