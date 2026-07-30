@@ -8,6 +8,11 @@ config/
 *.png
 qrcode*.png
 bili_qr*.png
+# 例外: 作者头像(公开信息, 前端要用)
+!web/public/avatar.png
+
+# 用户画作原图(只发布webp压缩版)
+pic/
 
 # 日志(可能含SESSDATA)
 *.log
@@ -58,3 +63,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# README截图例外
+!docs/screenshots/*.png

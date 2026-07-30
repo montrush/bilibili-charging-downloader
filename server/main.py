@@ -25,7 +25,7 @@ def health():
     return {'ok': True, 'msg': 'B站下载器后端运行中'}
 
 
-# 前端静态文件(构建后)
-web_dist = os.path.join(PROJ, 'web', 'dist')
+# 前端静态文件(构建后; PyInstaller打包时由 BILI_WEB_DIST 指向内置目录)
+web_dist = os.environ.get('BILI_WEB_DIST', os.path.join(PROJ, 'web', 'dist'))
 if os.path.exists(web_dist):
     app.mount('/', StaticFiles(directory=web_dist, html=True), name='web')

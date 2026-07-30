@@ -42,6 +42,6 @@ def browse(path: str = ''):
 
 @router.get('/default')
 def default_dir():
-    """默认下载目录(项目下 downloads)."""
-    d = os.path.join(PROJ, 'downloads')
+    """默认下载目录(可用 BILI_DOWNLOAD_DIR 覆盖, 默认项目下 downloads)."""
+    d = os.environ.get('BILI_DOWNLOAD_DIR', os.path.join(PROJ, 'downloads'))
     return {'ok': True, 'path': d}
