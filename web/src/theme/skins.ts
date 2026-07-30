@@ -161,6 +161,40 @@ export const SKINS: Skin[] = [
       },
     },
   },
+  {
+    id: 'sapphire',
+    name: '曜蓝',
+    mode: 'dark',
+    preview: 'linear-gradient(135deg,#7aa5f8,#1e3a6e)',
+    vars: {
+      '--skin-bg': 'linear-gradient(160deg,#0a0f1d 0%,#0d1526 55%,#090e1a 100%)',
+      '--orb-1': 'radial-gradient(circle, rgba(59,111,212,.14), transparent 65%)',
+      '--orb-2': 'radial-gradient(circle, rgba(122,165,248,.08), transparent 65%)',
+      '--orb-3': 'radial-gradient(circle, rgba(30,58,110,.16), transparent 65%)',
+      '--glass-bg': 'rgba(17,25,44,.90)',
+      '--glass-border': 'rgba(120,150,200,.14)',
+      '--glass-shadow': '0 8px 28px rgba(0,0,0,.42)',
+      '--glass-hover-shadow': '0 12px 36px rgba(0,0,0,.52)',
+      '--header-bg': 'rgba(10,15,29,.93)',
+      '--table-header-bg': 'rgba(24,34,58,.60)',
+      '--popup-bg': 'rgba(15,22,40,.96)',
+      '--accent': '#5b8def',
+      '--accent-2': '#7aa5f8',
+      '--accent-gradient': 'linear-gradient(135deg,#7aa5f8 0%,#5b8def 50%,#3b6fd4 100%)',
+      '--accent-glow': 'rgba(91,141,239,.28)',
+      '--text-strong': '#dbe4f0',
+    },
+    antd: {
+      token: {
+        colorPrimary: '#5b8def',
+        colorInfo: '#5b8def',
+        colorLink: '#7aa5f8',
+        colorTextBase: '#dbe4f0',
+        colorBgBase: '#0c1322',
+        borderRadius: 10,
+      },
+    },
+  },
 ]
 
 export const DEFAULT_SKIN = 'sunrise'
