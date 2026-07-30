@@ -93,9 +93,14 @@ body {
   .bg-orb, .railgun-arc, .railgun-coin, .railgun-spark, .hero-title { animation: none !important; }
 }
 .bg-orb { position: absolute; border-radius: 50%; filter: blur(48px); transition: background .5s ease; will-change: transform; transform: translateZ(0); }
-.bg-orb-1 { width: 520px; height: 520px; top: -160px; right: -100px; background: var(--orb-1); }
-.bg-orb-2 { width: 420px; height: 420px; bottom: -140px; left: -120px; background: var(--orb-2); }
-.bg-orb-3 { width: 360px; height: 360px; top: 38%; left: 55%; background: var(--orb-3); }
+.bg-orb-1 { width: 520px; height: 520px; top: -160px; right: -100px; background: var(--orb-1); animation: orbFloat 14s ease-in-out infinite; }
+.bg-orb-2 { width: 420px; height: 420px; bottom: -140px; left: -120px; background: var(--orb-2); animation: orbFloat 18s ease-in-out infinite reverse; }
+.bg-orb-3 { width: 360px; height: 360px; top: 38%; left: 55%; background: var(--orb-3); animation: orbFloat 22s ease-in-out infinite 3s; }
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(36px, -28px) scale(1.08); }
+}
+
 /* ========== 布局 ========== */
 .app-header {
   position: sticky; top: 0; z-index: 100;
@@ -198,6 +203,11 @@ body {
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
+  animation: titleShine 6s ease-in-out infinite;
+}
+@keyframes titleShine {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 .hero-subtitle { font-size: 15px; opacity: .68; margin: 0; }
 
@@ -330,7 +340,13 @@ body {
   width: 9px; height: 9px; border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent-glow);
+  animation: dotPulse 2s ease-in-out infinite;
 }
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .5; transform: scale(.8); }
+}
+
 /* ========== 分页/标签等细节 ========== */
 .ant-pagination .ant-pagination-item-active {
   border-color: var(--accent);
@@ -345,20 +361,38 @@ body {
   color: var(--accent-2, #fbbf24);
   filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 18px currentColor);
 }
-.arc-tl { top: 48px; left: -60px; width: 520px; }
-.arc-br { bottom: 40px; right: -60px; width: 560px; }
+.arc-tl { top: 48px; left: -60px; width: 520px; animation: arcFlicker 3.7s linear infinite; }
+.arc-br { bottom: 40px; right: -60px; width: 560px; animation: arcFlicker 4.6s linear infinite 1.2s; }
 [data-skin-mode="light"] .railgun-arc { color: #38bdf8; opacity: .55; }
+@keyframes arcFlicker {
+  0%, 100% { opacity: .8; }
+  6% { opacity: .2; }
+  9% { opacity: .85; }
+  28% { opacity: .45; }
+  31% { opacity: .9; }
+  57% { opacity: .3; }
+  60% { opacity: .75; }
+  82% { opacity: .5; }
+}
+
 /* 御坂金币: 3D翻转 + 上下漂浮 */
 .railgun-coin {
   position: absolute; top: 130px; right: 4%; width: 64px;
   filter: drop-shadow(0 4px 14px rgba(217,119,6,.45));
+  animation: coinFlip 7s cubic-bezier(.45, 0, .55, 1) infinite;
   transform-style: preserve-3d;
 }
+@keyframes coinFlip {
+  0%, 100% { transform: rotateY(0deg) translateY(0); }
+  50% { transform: rotateY(180deg) translateY(-16px); }
+}
+
 /* 火花粒子 */
 .railgun-spark {
   position: absolute; width: 6px; height: 6px; border-radius: 50%;
   background: var(--accent-2, #fbbf24);
   box-shadow: 0 0 8px 2px var(--accent-2, #fbbf24);
+  animation: sparkFloat 5s ease-in-out infinite;
 }
 [data-skin-mode="light"] .railgun-spark { background: #38bdf8; box-shadow: 0 0 8px 2px #38bdf8; }
 .spark-1 { top: 18%; left: 12%; animation-delay: 0s; }
@@ -366,3 +400,16 @@ body {
 .spark-3 { top: 62%; left: 6%; animation-delay: 2.2s; }
 .spark-4 { top: 76%; left: 90%; animation-delay: 3.1s; }
 .spark-5 { top: 48%; left: 50%; animation-delay: 4s; }
+@keyframes sparkFloat {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(.6); }
+  30% { opacity: .9; transform: translateY(-22px) scale(1); }
+  60% { opacity: .4; transform: translateY(-40px) scale(.8); }
+}
+
+/* ========== 性能: 关闭背景模糊(hover触发大面积重绘=鼠标移动卡顿根因), 用高不透明度底色 ========== */
+.glass-card, .info-panel, .app-header, .author-footer-inner,
+.icon-btn.ant-btn, .hero-badge,
+.ant-select-dropdown, .ant-dropdown .ant-dropdown-menu {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
