@@ -65,6 +65,13 @@ const LS_PARSE_MODE = 'bili-parse-mode'
 const loadParseMode = (): ParseMode =>
   localStorage.getItem(LS_PARSE_MODE) === 'collection' ? 'collection' : 'single'
 
+// 分集表格每页条数 (持久化)
+const LS_PAGE_SIZE = 'bili-page-size'
+const loadPageSize = (): number => {
+  const n = parseInt(localStorage.getItem(LS_PAGE_SIZE) || '', 10)
+  return [20, 50, 100, 200].includes(n) ? n : 20
+}
+
 export default function DownloadPage() {
   const { message } = App.useApp()
   const screens = Grid.useBreakpoint()
@@ -75,6 +82,7 @@ export default function DownloadPage() {
   const [collecting, setCollecting] = useState(false)
   const [parseMode, setParseMode] = useState<ParseMode>(loadParseMode)
   const [info, setInfo] = useState<VideoInfo | null>(null)
+  const [pageSize, setPageSize] = useState<number>(loadPageSize)
   const [selected, setSelected] = useState<string[]>([])
   const [settings, setSettings] = useState<DlSettings>(loadSettings)
   const [dirModalOpen, setDirModalOpen] = useState(false)
@@ -340,7 +348,16 @@ export default function DownloadPage() {
                 columns={columns}
                 rowKey="aid"
                 size="middle"
-                pagination={{ pageSize: 20, showSizeChanger: false }}
+                pagination={{
+                  pageSize,
+                  showSizeChanger: true,
+                  pageSizeOptions: [20, 50, 100, 200],
+                  showTotal: t => `共 ${t} 集`,
+                  onShowSizeChange: (_, size) => {
+                    setPageSize(size)
+                    localStorage.setItem(LS_PAGE_SIZE, String(size))
+                  },
+                }}
                 scroll={{ x: 'max-content' }}
                 rowSelection={{
                   selectedRowKeys: selected,
