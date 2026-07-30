@@ -101,6 +101,8 @@ def get_video_info(aid, cookie=None):
     if d.get('code') != 0:
         return None
     data = d['data']
+    owner = data.get('owner', {})
+    stat = data.get('stat', {})
     result = {
         'aid': str(aid),
         'bvid': data.get('bvid', ''),
@@ -110,6 +112,19 @@ def get_video_info(aid, cookie=None):
         'duration': data.get('duration', 0),
         'is_collection': False,
         'collection': None,
+        # 状态窗口元数据
+        'owner': owner.get('name', ''),
+        'owner_mid': owner.get('mid', 0),
+        'owner_face': owner.get('face', ''),
+        'pic': (data.get('pic') or '').replace('http://', 'https://'),
+        'desc': data.get('desc', ''),
+        'tname': data.get('tname', '') or data.get('tname_v2', ''),
+        'stat': {
+            'view': stat.get('view', 0), 'danmaku': stat.get('danmaku', 0),
+            'reply': stat.get('reply', 0), 'favorite': stat.get('favorite', 0),
+            'coin': stat.get('coin', 0), 'share': stat.get('share', 0),
+            'like': stat.get('like', 0),
+        },
     }
     ugc = data.get('ugc_season')
     if ugc:
@@ -125,34 +140,45 @@ def get_video_info(aid, cookie=None):
                     'date': datetime.datetime.fromtimestamp(pubdate).strftime('%Y-%m-%d') if pubdate else '',
                     'duration': arc.get('duration', 0),
                 })
+        ustat = ugc.get('stat', {})
         result['is_collection'] = True
         result['collection'] = {
             'season_id': ugc.get('id'),
             'title': ugc.get('title', ''),
             'episodes': eps,
+            'cover': (ugc.get('cover') or '').replace('http://', 'https://'),
+            'intro': ugc.get('intro', ''),
+            'ep_count': ugc.get('ep_count', len(eps)),
+            'stat': {
+                'view': ustat.get('view', 0), 'danmaku': ustat.get('danmaku', 0),
+                'reply': ustat.get('reply', 0), 'favorite': ustat.get('fav', 0),
+                'coin': ustat.get('coin', 0), 'share': ustat.get('share', 0),
+                'like': ustat.get('like', 0),
+            },
         }
     return result
 
 
 def fetch_collection_by_sid(sid, mid=None, cookie=None):
-    """通过空间合集 sid 获取视频列表."""
+    """通过空间合集 sid 获取视频列表+合集元数据. 返回 {'archives': [...], 'meta': {...}}."""
     import requests
     headers = dict(HEADERS)
     if cookie:
         headers['Cookie'] = cookie
 
-    # 如果不知道 mid, 先查 season 元数据
+    meta = {}
+    # 查 season 元数据 (封面/简介/UP主mid)
+    r = requests.get(
+        'https://api.bilibili.com/x/polymer/web-space/seasons_archives_list',
+        params={'season_id': sid, 'page_num': 1, 'page_size': 1},
+        headers=headers, timeout=15,
+    )
+    try:
+        meta = r.json().get('data', {}).get('meta', {}) or {}
+    except Exception:
+        pass
     if not mid:
-        r = requests.get(
-            'https://api.bilibili.com/x/polymer/web-space/seasons_archives_list',
-            params={'season_id': sid, 'page_num': 1, 'page_size': 1},
-            headers=headers, timeout=15,
-        )
-        try:
-            meta = r.json().get('data', {}).get('meta', {})
-            mid = meta.get('mid')
-        except Exception:
-            pass
+        mid = meta.get('mid')
 
     if not mid:
         return None
@@ -184,7 +210,7 @@ def fetch_collection_by_sid(sid, mid=None, cookie=None):
             break
         page_num += 1
 
-    return archives
+    return {'archives': archives, 'meta': meta}
 
 
 def fetch_article_info(cv_id):
@@ -285,21 +311,29 @@ def parse_link(url, cookie=None):
         aid = bvid_to_aid(bvid)
 
     if sid:
-        collection = fetch_collection_by_sid(sid, mid=mid, cookie=cookie)
-        if collection:
+        coll = fetch_collection_by_sid(sid, mid=mid, cookie=cookie)
+        if coll and coll.get('archives'):
+            episodes = coll['archives']
+            meta = coll.get('meta') or {}
+            coll_title = meta.get('name') or f'合集 #{sid}'
             result.update({
                 'aid': '',
                 'bvid': bvid or '',
-                'title': f'合集 #{sid}',
+                'title': coll_title,
                 'date': '',
                 'duration': 0,
                 'is_collection': True,
+                'owner_mid': meta.get('mid', 0),
                 'collection': {
                     'season_id': sid,
-                    'title': f'合集 #{sid}',
-                    'episodes': collection,
+                    'title': coll_title,
+                    'episodes': episodes,
+                    'cover': (meta.get('cover') or '').replace('http://', 'https://'),
+                    'intro': meta.get('description', ''),
+                    'ep_count': meta.get('total', len(episodes)),
+                    'stat': {},
                 },
-                'message': f'识别为空间合集，共 {len(collection)} 个视频',
+                'message': f'识别为空间合集，共 {len(episodes)} 个视频',
             })
             return result
         # sid 匹配但拿不到合集, 可能是过期/无效 sid, 降级为普通视频

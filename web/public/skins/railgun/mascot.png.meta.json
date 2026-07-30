@@ -1,0 +1,44 @@
+{
+  "prompt": "masterpiece, best quality, very aesthetic, absurdres, 1girl, chibi, short brown hair, brown eyes, hair flower clip, beige school uniform blazer, pleated skirt, confident smirk, blue electricity sparks crackling around raised hand, gold coin flicked on thumb, dynamic pose, glowing particles, simple dark navy background, rim lighting, full body, solo",
+  "all_prompts": [
+    "masterpiece, best quality, very aesthetic, absurdres, 1girl, chibi, short brown hair, brown eyes, hair flower clip, beige school uniform blazer, pleated skirt, confident smirk, blue electricity sparks crackling around raised hand, gold coin flicked on thumb, dynamic pose, glowing particles, simple dark navy background, rim lighting, full body, solo"
+  ],
+  "negative_prompt": "lowres, bad anatomy, bad hands, missing fingers, extra fingers, worst quality, low quality, jpeg artifacts, watermark, text, signature, logo, username, blurry, cropped, mutation, deformed, ugly, white background, multiple girls, realistic",
+  "all_negative_prompts": [
+    "lowres, bad anatomy, bad hands, missing fingers, extra fingers, worst quality, low quality, jpeg artifacts, watermark, text, signature, logo, username, blurry, cropped, mutation, deformed, ugly, white background, multiple girls, realistic"
+  ],
+  "seed": 20260730,
+  "all_seeds": [
+    20260730
+  ],
+  "subseed": 3857364419,
+  "all_subseeds": [
+    3857364419
+  ],
+  "subseed_strength": 0,
+  "width": 768,
+  "height": 1152,
+  "sampler_name": "DPM++ 2M Karras",
+  "cfg_scale": 6.0,
+  "steps": 32,
+  "batch_size": 1,
+  "restore_faces": false,
+  "face_restoration_model": null,
+  "sd_model_name": "[SDXL]animagineXLV3_v30",
+  "sd_model_hash": "1449e5b0b9",
+  "sd_vae_name": "[XL]sdxl_vae.safetensors",
+  "sd_vae_hash": "0c22f784fd",
+  "seed_resize_from_w": -1,
+  "seed_resize_from_h": -1,
+  "denoising_strength": null,
+  "extra_generation_params": {},
+  "index_of_first_image": 0,
+  "infotexts": [
+    "masterpiece, best quality, very aesthetic, absurdres, 1girl, chibi, short brown hair, brown eyes, hair flower clip, beige school uniform blazer, pleated skirt, confident smirk, blue electricity sparks crackling around raised hand, gold coin flicked on thumb, dynamic pose, glowing particles, simple dark navy background, rim lighting, full body, solo\nNegative prompt: lowres, bad anatomy, bad hands, missing fingers, extra fingers, worst quality, low quality, jpeg artifacts, watermark, text, signature, logo, username, blurry, cropped, mutation, deformed, ugly, white background, multiple girls, realistic\nSteps: 32, Sampler: DPM++ 2M Karras, CFG scale: 6.0, Seed: 20260730, Size: 768x1152, Model hash: 1449e5b0b9, Model: [SDXL]animagineXLV3_v30, VAE hash: 0c22f784fd, VAE: [XL]sdxl_vae.safetensors, Clip skip: 2, Version: v1.8.0"
+  ],
+  "styles": [],
+  "job_timestamp": "20260730204556",
+  "clip_skip": 2,
+  "is_using_inpainting_conditioning": false,
+  "version": "v1.8.0"
+}

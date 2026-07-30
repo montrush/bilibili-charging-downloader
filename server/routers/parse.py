@@ -25,3 +25,22 @@ def parse_link(req: ParseRequest):
     if not data.get('aid') and not data.get('is_collection'):
         return {'ok': False, 'error': '链接类型已识别，但无法获取详情'}
     return {'ok': True, 'data': data}
+
+
+@router.post('/parse/collection')
+def parse_collection(req: ParseRequest):
+    """下载合集: 从任意一集视频链接展开所属合集(全部剧集).
+
+    视频不属于任何合集时返回错误提示.
+    """
+    cookie = bili_auth.get_cookie_str()
+    data = bili_dl.parse_link(req.url, cookie)
+    if not data:
+        return {'ok': False, 'error': '无法解析链接, 请检查URL'}
+    if data.get('is_collection') and data.get('collection'):
+        data['link_type'] = 'collection'
+        n = len(data['collection'].get('episodes', []))
+        return {'ok': True, 'data': data, 'message': f'已展开合集，共 {n} 集'}
+    if data.get('link_type') in ('article', 'image', 'unknown'):
+        return {'ok': False, 'error': '该链接不是视频，无法展开合集'}
+    return {'ok': False, 'error': '该视频不属于任何合集'}

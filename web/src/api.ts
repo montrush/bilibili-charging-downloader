@@ -10,9 +10,24 @@ export const loginApi = {
 
 export const parseApi = {
   parse: (url: string) => api.post('/parse', { url }).then(r => r.data),
+  parseCollection: (url: string) => api.post('/parse/collection', { url }).then(r => r.data),
+}
+
+export interface DlOptions {
+  auto_mkdir: boolean
+  mkdir_up: boolean
+  mkdir_collection: boolean
+  up_name: string
+  collection_title: string
 }
 
 export const downloadApi = {
-  start: (aids: string[], path: string) => api.post('/download', { aids, path }).then(r => r.data),
+  start: (aids: string[], path: string, opts: DlOptions) =>
+    api.post('/download', { aids, path, ...opts }).then(r => r.data),
   progress: (taskId: string) => api.get('/download/progress', { params: { task_id: taskId } }).then(r => r.data),
+}
+
+export const fsApi = {
+  browse: (path: string) => api.get('/fs/browse', { params: { path } }).then(r => r.data),
+  default: () => api.get('/fs/default').then(r => r.data),
 }

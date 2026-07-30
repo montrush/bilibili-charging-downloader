@@ -1,5 +1,6 @@
 /* ========== 基础 ========== */
 * { box-sizing: border-box; }
+html { background: var(--skin-bg); transition: background .5s ease; }
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
@@ -14,6 +15,24 @@ body {
 
 /* ========== 背景光斑 (装饰) ========== */
 .bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+/* SD生成的皮肤背景图 (在最底层, 光斑之上叠渐变底色) */
+.skin-bg-img {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-size: cover; background-position: center;
+  transition: opacity .5s ease;
+}
+/* SD生成的看板娘立绘 (右下角, 窄屏隐藏) */
+.skin-mascot {
+  position: fixed; right: 12px; bottom: 0; z-index: 0; pointer-events: none;
+  height: min(52vh, 560px); user-select: none;
+  filter: drop-shadow(0 8px 28px rgba(0,0,0,.35));
+  animation: mascotIn .9s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes mascotIn {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (max-width: 1100px) { .skin-mascot { display: none; } }
 .bg-orb { position: absolute; border-radius: 50%; filter: blur(70px); transition: background .5s ease; }
 .bg-orb-1 { width: 520px; height: 520px; top: -160px; right: -100px; background: var(--orb-1); animation: orbFloat 14s ease-in-out infinite; }
 .bg-orb-2 { width: 420px; height: 420px; bottom: -140px; left: -120px; background: var(--orb-2); animation: orbFloat 18s ease-in-out infinite reverse; }
@@ -37,6 +56,21 @@ body {
 .app-header-brand { display: flex; align-items: center; gap: 12px; }
 .app-header-title { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
 .app-main { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; padding: 32px 24px 64px; }
+.app-main-wide { max-width: 1280px; }
+
+/* PC双栏: 左状态窗口 / 右内容 */
+.content-grid {
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.info-panel-col { position: sticky; top: 84px; }
+.main-col { min-width: 0; }
+@media (max-width: 900px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .info-panel-col { position: static; }
+}
 
 /* ========== 玻璃拟态卡片 ========== */
 .glass-card {
@@ -103,7 +137,28 @@ body {
   backdrop-filter: blur(12px);
 }
 .hero-title { font-size: 40px; font-weight: 800; letter-spacing: 1px; margin: 0 0 10px; }
+.hero-title.gradient-text {
+  background: var(--accent-gradient);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: titleShine 6s ease-in-out infinite;
+}
+@keyframes titleShine {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
 .hero-subtitle { font-size: 15px; opacity: .68; margin: 0; }
+
+/* 输入框聚焦辉光 */
+.ant-input-affix-wrapper-focused,
+.ant-input-affix-wrapper:focus-within,
+.ant-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow) !important;
+}
 
 /* ========== 表格透明化 (透出玻璃底) ========== */
 .glass-card .ant-table,
@@ -149,7 +204,145 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); background-clip: padding-box; }
 
+/* ========== 状态窗口 (信息面板) ========== */
+.info-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  box-shadow: var(--glass-shadow);
+  padding: 18px;
+  transition: background .5s ease, border-color .5s ease, box-shadow .3s ease;
+}
+.info-panel:hover { box-shadow: var(--glass-hover-shadow); }
+
+.info-cover-wrap { position: relative; margin-bottom: 14px; }
+.info-cover {
+  width: 100%; aspect-ratio: 16 / 10; object-fit: cover;
+  border-radius: 14px; display: block;
+  box-shadow: 0 8px 26px var(--accent-glow);
+}
+.info-cover-badge {
+  position: absolute; left: 10px; bottom: 10px;
+  padding: 3px 12px; font-size: 12px; font-weight: 600;
+  color: #fff; background: rgba(0,0,0,.45);
+  backdrop-filter: blur(8px);
+  border-radius: 999px; border: 1px solid rgba(255,255,255,.25);
+}
+
+.info-title {
+  margin: 0 0 10px; font-size: 18px; font-weight: 700;
+  line-height: 1.4; letter-spacing: .3px;
+}
+
+.info-owner {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; margin-bottom: 14px;
+}
+.info-tag {
+  margin-left: auto; border-radius: 999px;
+  color: var(--accent); border-color: var(--accent-glow);
+  background: transparent;
+}
+
+.stat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px; margin-bottom: 14px;
+}
+.stat-item {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 9px 4px; border-radius: 12px;
+  background: var(--table-header-bg);
+  transition: transform .2s ease;
+}
+.stat-item:hover { transform: translateY(-2px); }
+.stat-icon { font-size: 13px; opacity: .6; margin-bottom: 2px; }
+.stat-value {
+  font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+.stat-label { font-size: 11px; opacity: .55; }
+
+.info-meta { margin-bottom: 10px; font-size: 13px; }
+.info-meta-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; opacity: .8; }
+.meta-label { opacity: .7; }
+
+.info-desc { font-size: 13px; opacity: .75; margin-bottom: 12px !important; }
+
+.dl-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: 12px;
+  background: var(--table-header-bg);
+  font-size: 14px; font-weight: 600;
+}
+.dl-status b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.dl-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .5; transform: scale(.8); }
+}
+
 /* ========== 分页/标签等细节 ========== */
 .ant-pagination .ant-pagination-item-active {
   border-color: var(--accent);
+}
+
+/* ========== 超电磁炮装饰 (deco=railgun) ========== */
+.railgun-deco { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+
+/* 电弧: 发光 + 不规则闪烁 (biribiri) */
+.railgun-arc {
+  position: absolute;
+  color: var(--accent-2, #fbbf24);
+  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 18px currentColor);
+}
+.arc-tl { top: 48px; left: -60px; width: 520px; animation: arcFlicker 3.7s linear infinite; }
+.arc-br { bottom: 40px; right: -60px; width: 560px; animation: arcFlicker 4.6s linear infinite 1.2s; }
+[data-skin-mode="light"] .railgun-arc { color: #38bdf8; opacity: .55; }
+@keyframes arcFlicker {
+  0%, 100% { opacity: .8; }
+  6% { opacity: .2; }
+  9% { opacity: .85; }
+  28% { opacity: .45; }
+  31% { opacity: .9; }
+  57% { opacity: .3; }
+  60% { opacity: .75; }
+  82% { opacity: .5; }
+}
+
+/* 御坂金币: 3D翻转 + 上下漂浮 */
+.railgun-coin {
+  position: absolute; top: 130px; right: 4%; width: 64px;
+  filter: drop-shadow(0 4px 14px rgba(217,119,6,.45));
+  animation: coinFlip 7s cubic-bezier(.45, 0, .55, 1) infinite;
+  transform-style: preserve-3d;
+}
+@keyframes coinFlip {
+  0%, 100% { transform: rotateY(0deg) translateY(0); }
+  50% { transform: rotateY(180deg) translateY(-16px); }
+}
+
+/* 火花粒子 */
+.railgun-spark {
+  position: absolute; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent-2, #fbbf24);
+  box-shadow: 0 0 8px 2px var(--accent-2, #fbbf24);
+  animation: sparkFloat 5s ease-in-out infinite;
+}
+[data-skin-mode="light"] .railgun-spark { background: #38bdf8; box-shadow: 0 0 8px 2px #38bdf8; }
+.spark-1 { top: 18%; left: 12%; animation-delay: 0s; }
+.spark-2 { top: 32%; left: 86%; animation-delay: 1s; }
+.spark-3 { top: 62%; left: 6%; animation-delay: 2.2s; }
+.spark-4 { top: 76%; left: 90%; animation-delay: 3.1s; }
+.spark-5 { top: 48%; left: 50%; animation-delay: 4s; }
+@keyframes sparkFloat {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(.6); }
+  30% { opacity: .9; transform: translateY(-22px) scale(1); }
+  60% { opacity: .4; transform: translateY(-40px) scale(.8); }
 }

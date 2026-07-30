@@ -4,7 +4,7 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import login, parse, download
+from .routers import login, parse, download, fs
 
 PROJ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -17,6 +17,7 @@ app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], all
 app.include_router(login.router)
 app.include_router(parse.router)
 app.include_router(download.router)
+app.include_router(fs.router)
 
 
 @app.get('/api/health')

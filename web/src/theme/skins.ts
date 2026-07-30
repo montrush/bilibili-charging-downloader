@@ -10,6 +10,14 @@ export interface Skin {
   mode: 'light' | 'dark'
   /** 切换器里的预览圆点 */
   preview: string
+  /** 背景装饰类型 (默认orbs光斑; railgun=电磁炮电弧+金币) */
+  deco?: 'orbs' | 'railgun'
+  /** SD生成的背景图 (public/下的路径, 如 /skins/railgun/bg.png) */
+  bgImage?: string
+  /** 背景图不透明度 (默认0.32) */
+  bgImageOpacity?: number
+  /** SD生成的看板娘 (public/下的路径, 右下角立绘) */
+  mascot?: string
   /** 注入到 :root 的 CSS 变量 */
   vars: Record<string, string>
   /** antd token 覆盖 (algorithm 由 mode 自动决定) */
@@ -152,3 +160,81 @@ export const SKINS: Skin[] = [
 ]
 
 export const DEFAULT_SKIN = 'sunrise'
+
+// ========== 超电磁炮主题 (二次元) ==========
+SKINS.push(
+  {
+    id: 'railgun',
+    name: '电磁炮',
+    mode: 'dark',
+    deco: 'railgun',
+    bgImage: '/skins/railgun/bg.png',
+    bgImageOpacity: 0.35,
+    mascot: '/skins/railgun/mascot.png',
+    preview: 'linear-gradient(135deg,#38bdf8,#fbbf24)',
+    vars: {
+      '--skin-bg': 'linear-gradient(155deg,#070d1a 0%,#0b1730 45%,#0a1020 100%)',
+      '--orb-1': 'radial-gradient(circle, rgba(56,189,248,.20), transparent 65%)',
+      '--orb-2': 'radial-gradient(circle, rgba(251,191,36,.13), transparent 65%)',
+      '--orb-3': 'radial-gradient(circle, rgba(14,165,233,.16), transparent 65%)',
+      '--glass-bg': 'rgba(13,25,48,.58)',
+      '--glass-border': 'rgba(125,211,252,.16)',
+      '--glass-shadow': '0 8px 32px rgba(0,0,0,.5)',
+      '--glass-hover-shadow': '0 12px 40px rgba(2,12,30,.65)',
+      '--header-bg': 'rgba(8,14,28,.74)',
+      '--table-header-bg': 'rgba(24,44,78,.55)',
+      '--accent': '#38bdf8',
+      '--accent-2': '#fbbf24',
+      '--accent-gradient': 'linear-gradient(135deg,#7dd3fc 0%,#38bdf8 50%,#0284c7 100%)',
+      '--accent-glow': 'rgba(56,189,248,.35)',
+      '--text-strong': '#e3eefb',
+    },
+    antd: {
+      token: {
+        colorPrimary: '#38bdf8',
+        colorInfo: '#38bdf8',
+        colorLink: '#7dd3fc',
+        colorTextBase: '#e3eefb',
+        colorBgBase: '#0b1426',
+        borderRadius: 12,
+      },
+    },
+  },
+  {
+    id: 'tokiwadai',
+    name: '常盘台',
+    mode: 'light',
+    deco: 'railgun',
+    bgImage: '/skins/tokiwadai/bg.png',
+    bgImageOpacity: 0.3,
+    mascot: '/skins/tokiwadai/mascot.png',
+    preview: 'linear-gradient(135deg,#d97706,#38bdf8)',
+    vars: {
+      '--skin-bg': 'linear-gradient(155deg,#fbf4e6 0%,#f5e8d2 50%,#f9efe0 100%)',
+      '--orb-1': 'radial-gradient(circle, rgba(217,119,6,.28), transparent 65%)',
+      '--orb-2': 'radial-gradient(circle, rgba(56,189,248,.22), transparent 65%)',
+      '--orb-3': 'radial-gradient(circle, rgba(251,191,36,.30), transparent 65%)',
+      '--glass-bg': 'rgba(255,253,248,.64)',
+      '--glass-border': 'rgba(255,255,255,.8)',
+      '--glass-shadow': '0 8px 32px rgba(146,99,32,.14)',
+      '--glass-hover-shadow': '0 12px 40px rgba(146,99,32,.20)',
+      '--header-bg': 'rgba(251,244,230,.74)',
+      '--table-header-bg': 'rgba(247,233,208,.85)',
+      '--accent': '#d97706',
+      '--accent-2': '#38bdf8',
+      '--accent-gradient': 'linear-gradient(135deg,#fbbf24 0%,#d97706 55%,#b45309 100%)',
+      '--accent-glow': 'rgba(217,119,6,.32)',
+      '--text-strong': '#3f2a12',
+    },
+    antd: {
+      token: {
+        colorPrimary: '#d97706',
+        colorInfo: '#d97706',
+        colorLink: '#b45309',
+        colorTextBase: '#3f2a12',
+        colorBgBase: '#f8eeda',
+        borderRadius: 12,
+      },
+    },
+  },
+)

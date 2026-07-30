@@ -1,0 +1,44 @@
+{
+  "prompt": "masterpiece, best quality, very aesthetic, absurdres, anime scenery, warm cream and ivory tones, elegant academy courtyard, soft morning sunlight, ginkgo leaves drifting, gentle gold and light blue accents, watercolor style, airy, bright, peaceful, wide shot, no humans, minimal, soft light",
+  "all_prompts": [
+    "masterpiece, best quality, very aesthetic, absurdres, anime scenery, warm cream and ivory tones, elegant academy courtyard, soft morning sunlight, ginkgo leaves drifting, gentle gold and light blue accents, watercolor style, airy, bright, peaceful, wide shot, no humans, minimal, soft light"
+  ],
+  "negative_prompt": "lowres, bad anatomy, bad hands, missing fingers, extra fingers, worst quality, low quality, jpeg artifacts, watermark, text, signature, logo, username, blurry, cropped, mutation, deformed, ugly, dark, night, people, crowd, high contrast",
+  "all_negative_prompts": [
+    "lowres, bad anatomy, bad hands, missing fingers, extra fingers, worst quality, low quality, jpeg artifacts, watermark, text, signature, logo, username, blurry, cropped, mutation, deformed, ugly, dark, night, people, crowd, high contrast"
+  ],
+  "seed": 20260730,
+  "all_seeds": [
+    20260730
+  ],
+  "subseed": 4176580978,
+  "all_subseeds": [
+    4176580978
+  ],
+  "subseed_strength": 0,
+  "width": 1344,
+  "height": 768,
+  "sampler_name": "DPM++ 2M Karras",
+  "cfg_scale": 6.0,
+  "steps": 30,
+  "batch_size": 1,
+  "restore_faces": false,
+  "face_restoration_model": null,
+  "sd_model_name": "[SDXL]animagineXLV3_v30",
+  "sd_model_hash": "1449e5b0b9",
+  "sd_vae_name": "[XL]sdxl_vae.safetensors",
+  "sd_vae_hash": "0c22f784fd",
+  "seed_resize_from_w": -1,
+  "seed_resize_from_h": -1,
+  "denoising_strength": null,
+  "extra_generation_params": {},
+  "index_of_first_image": 0,
+  "infotexts": [
+    "masterpiece, best quality, very aesthetic, absurdres, anime scenery, warm cream and ivory tones, elegant academy courtyard, soft morning sunlight, ginkgo leaves drifting, gentle gold and light blue accents, watercolor style, airy, bright, peaceful, wide shot, no humans, minimal, soft light\nNegative prompt: lowres, bad anatomy, bad hands, missing fingers, extra fingers, worst quality, low quality, jpeg artifacts, watermark, text, signature, logo, username, blurry, cropped, mutation, deformed, ugly, dark, night, people, crowd, high contrast\nSteps: 30, Sampler: DPM++ 2M Karras, CFG scale: 6.0, Seed: 20260730, Size: 1344x768, Model hash: 1449e5b0b9, Model: [SDXL]animagineXLV3_v30, VAE hash: 0c22f784fd, VAE: [XL]sdxl_vae.safetensors, Clip skip: 2, Version: v1.8.0"
+  ],
+  "styles": [],
+  "job_timestamp": "20260730204604",
+  "clip_skip": 2,
+  "is_using_inpainting_conditioning": false,
+  "version": "v1.8.0"
+}
