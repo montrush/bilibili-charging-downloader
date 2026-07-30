@@ -18,6 +18,12 @@ export interface Skin {
   bgImageOpacity?: number
   /** 背景图定位 (默认center, 竖版图用 'center 30%' 等) */
   bgPosition?: string
+  /** 手机端专用背景图 (≤768px时替换bgImage, 适合竖版画) */
+  bgImageMobile?: string
+  /** 手机端背景不透明度 (默认沿用bgImageOpacity) */
+  bgImageOpacityMobile?: number
+  /** 手机端背景定位 (默认沿用bgPosition) */
+  bgPositionMobile?: string
   /** SD生成的看板娘 (public/下的路径, 右下角立绘) */
   mascot?: string
   /** 注入到 :root 的 CSS 变量 */
@@ -31,6 +37,9 @@ export const SKINS: Skin[] = [
     id: 'sunrise',
     name: '晨曦',
     mode: 'light',
+    bgImageMobile: '/skins/sunrise/bg-mobile.webp',
+    bgImageOpacityMobile: 0.2,
+    bgPositionMobile: 'center 30%',
     preview: 'linear-gradient(135deg,#fbbf24,#f97316)',
     vars: {
       '--skin-bg': 'linear-gradient(155deg,#fff9f0 0%,#fdeed8 45%,#fef1e0 75%,#fff6ea 100%)',
@@ -65,6 +74,9 @@ export const SKINS: Skin[] = [
     id: 'peach',
     name: '蜜桃',
     mode: 'light',
+    bgImageMobile: '/skins/peach/bg-mobile.webp',
+    bgImageOpacityMobile: 0.2,
+    bgPositionMobile: 'center 30%',
     preview: 'linear-gradient(135deg,#fda4af,#f43f5e)',
     vars: {
       '--skin-bg': 'linear-gradient(155deg,#fff7f5 0%,#ffe9e4 50%,#fff1ec 100%)',
@@ -99,6 +111,9 @@ export const SKINS: Skin[] = [
     id: 'dusk',
     name: '暮色',
     mode: 'dark',
+    bgImageMobile: '/skins/dusk/bg-mobile.webp',
+    bgImageOpacityMobile: 0.3,
+    bgPositionMobile: 'center 30%',
     preview: 'linear-gradient(135deg,#fde68a,#b45309)',
     vars: {
       '--skin-bg': 'linear-gradient(155deg,#191009 0%,#231709 45%,#1b110b 100%)',
@@ -133,6 +148,9 @@ export const SKINS: Skin[] = [
     id: 'ember',
     name: '熔岩',
     mode: 'dark',
+    bgImageMobile: '/skins/ember/bg-mobile.webp',
+    bgImageOpacityMobile: 0.25,
+    bgPositionMobile: 'center 30%',
     preview: 'linear-gradient(135deg,#fdba74,#dc2626)',
     vars: {
       '--skin-bg': 'linear-gradient(155deg,#170c0a 0%,#241010 50%,#180d0b 100%)',
@@ -252,6 +270,9 @@ SKINS.push(
     bgImage: '/skins/tokiwadai/bg.webp',
     bgImageOpacity: 0.3,
     mascot: '/skins/tokiwadai/mascot.webp',
+    bgImageMobile: '/skins/tokiwadai/bg-mobile.webp',
+    bgImageOpacityMobile: 0.2,
+    bgPositionMobile: 'center 30%',
     preview: 'linear-gradient(135deg,#d97706,#38bdf8)',
     vars: {
       '--skin-bg': 'linear-gradient(155deg,#fbf4e6 0%,#f5e8d2 50%,#f9efe0 100%)',

@@ -21,6 +21,16 @@ body {
   background-size: cover; background-position: center;
   transition: opacity .5s ease;
 }
+/* 手机端专用背景 (≤768px 替换PC背景, 适合竖版画) */
+.skin-bg-img-mobile {
+  display: none;
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-size: cover; background-position: center;
+}
+@media (max-width: 768px) {
+  .skin-bg-img-mobile { display: block; }
+  .skin-bg-img.has-mobile { display: none; }
+}
 /* SD生成的看板娘立绘 (右下角, 窄屏隐藏) */
 .skin-mascot {
   position: fixed; right: 12px; bottom: 0; z-index: 0; pointer-events: none;

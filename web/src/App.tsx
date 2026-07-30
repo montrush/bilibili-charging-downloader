@@ -28,11 +28,21 @@ export default function App() {
     <>
       {skin.bgImage && (
         <div
-          className="skin-bg-img"
+          className={`skin-bg-img${skin.bgImageMobile ? ' has-mobile' : ''}`}
           style={{
             backgroundImage: `url(${skin.bgImage})`,
             opacity: skin.bgImageOpacity ?? 0.32,
             backgroundPosition: skin.bgPosition ?? 'center',
+          }}
+        />
+      )}
+      {skin.bgImageMobile && (
+        <div
+          className="skin-bg-img-mobile"
+          style={{
+            backgroundImage: `url(${skin.bgImageMobile})`,
+            opacity: skin.bgImageOpacityMobile ?? skin.bgImageOpacity ?? 0.32,
+            backgroundPosition: skin.bgPositionMobile ?? skin.bgPosition ?? 'center',
           }}
         />
       )}
