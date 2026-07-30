@@ -24,7 +24,7 @@ RUN set -eux; \
     && mv /tmp/bbdown/BBDown /usr/local/bin/BBDown \
     && chmod +x /usr/local/bin/BBDown \
     && rm -rf /tmp/bbdown /tmp/bbdown.zip \
-    && BBDown --version
+    && ls -la /usr/local/bin/BBDown
 
 # Python依赖
 COPY server/requirements.txt /app/server/requirements.txt
