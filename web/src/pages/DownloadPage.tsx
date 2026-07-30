@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { App, Card, Input, Button, Table, Progress, Typography, Space, Tag, Grid, Image, Checkbox, Tooltip } from 'antd'
+import { App, Card, Input, Button, Table, Progress, Typography, Space, Tag, Grid, Image, Checkbox, Tooltip, Segmented } from 'antd'
 import { DownloadOutlined, SearchOutlined, LinkOutlined, FolderOpenOutlined, UnorderedListOutlined, FileTextOutlined, PictureOutlined } from '@ant-design/icons'
 import { parseApi, downloadApi } from '../api'
 import InfoPanel from '../components/InfoPanel'
@@ -59,6 +59,12 @@ function loadSettings(): DlSettings {
 // 目录名清洗(与后端一致)
 const sanitizeDirName = (s: string) => s.replace(/[\\/:*?"<>|\r\n]+/g, '_').trim().replace(/\.+$/, '').slice(0, 80)
 
+// 解析模式: 单集 / 整个合集 (开关式切换, 选择持久化)
+type ParseMode = 'single' | 'collection'
+const LS_PARSE_MODE = 'bili-parse-mode'
+const loadParseMode = (): ParseMode =>
+  localStorage.getItem(LS_PARSE_MODE) === 'collection' ? 'collection' : 'single'
+
 export default function DownloadPage() {
   const { message } = App.useApp()
   const screens = Grid.useBreakpoint()
@@ -67,6 +73,7 @@ export default function DownloadPage() {
   const [url, setUrl] = useState('')
   const [parsing, setParsing] = useState(false)
   const [collecting, setCollecting] = useState(false)
+  const [parseMode, setParseMode] = useState<ParseMode>(loadParseMode)
   const [info, setInfo] = useState<VideoInfo | null>(null)
   const [selected, setSelected] = useState<string[]>([])
   const [settings, setSettings] = useState<DlSettings>(loadSettings)
@@ -82,14 +89,25 @@ export default function DownloadPage() {
     })
   }
 
-  // 解析结果应用: 合集默认全选, 需要再手动取消勾选
-  const applyInfo = (data: VideoInfo) => {
+  // 解析结果应用: 合集模式=默认全选; 单集模式=只选当前这一集
+  const applyInfo = (data: VideoInfo, mode: ParseMode = parseMode) => {
     setInfo(data)
-    if ((data.link_type === 'video' || data.link_type === 'collection') && data.is_collection && data.collection) {
+    if (mode === 'collection' && (data.link_type === 'video' || data.link_type === 'collection') && data.is_collection && data.collection) {
       setSelected(data.collection.episodes.map((e: Episode) => e.aid))
-    } else if (data.link_type === 'video' && data.aid) {
+    } else if (data.aid) {
+      // 单集模式: 注意合集成员视频的 link_type 是 'collection', 只看 aid
       setSelected([data.aid])
+      if (mode === 'single' && data.is_collection) {
+        message.info('单集模式: 仅选当前视频, 切到「整个合集」可展开全部')
+      }
     }
+  }
+
+  // 开关切换: 持久化选择, 已有解析结果时即时重算勾选, 无需重新请求
+  const changeParseMode = (mode: ParseMode) => {
+    setParseMode(mode)
+    localStorage.setItem(LS_PARSE_MODE, mode)
+    if (info) applyInfo(info, mode)
   }
 
   const handleParse = async () => {
@@ -103,14 +121,15 @@ export default function DownloadPage() {
     finally { setParsing(false) }
   }
 
-  // 下载合集: 任意一集链接 -> 展开所属合集全部剧集(默认全选)
+  // 下载合集: 任意一集链接 -> 展开所属合集全部剧集(默认全选), 同时把开关拨到"整个合集"
   const handleParseCollection = async () => {
     if (!url.trim()) { message.warning('请输入B站视频链接'); return }
     setCollecting(true); setInfo(null); setProgress(null); setSelected([])
     try {
       const res = await parseApi.parseCollection(url.trim())
       if (!res.ok) { message.warning(res.error); return }
-      applyInfo(res.data)
+      changeParseMode('collection')
+      applyInfo(res.data, 'collection')
       const n = res.data?.collection?.episodes?.length || 0
       message.success(`已展开合集「${res.data.collection?.title}」, 共 ${n} 集, 默认全选`)
     } catch (e: any) { message.error('解析失败: ' + e.message) }
@@ -155,9 +174,18 @@ export default function DownloadPage() {
   ]
 
   const isVideoType = info && (info.link_type === 'video' || info.link_type === 'collection')
-  const episodes = info?.is_collection
-    ? info.collection!.episodes
-    : (info?.aid ? [{ aid: info.aid, title: info.title || '', date: info.date || '', duration: 0, bvid: '' }] : [])
+  // 单集模式: 即使视频属于合集, 列表也只显示当前这一集 (从合集里捞它的时长/日期)
+  const episodes: Episode[] = (() => {
+    if (!info) return []
+    if (parseMode === 'collection' && info.is_collection && info.collection) {
+      return info.collection.episodes
+    }
+    if (info.aid) {
+      const ep = info.collection?.episodes?.find(e => e.aid === info.aid)
+      return [ep || { aid: info.aid, title: info.title || '', date: info.date || '', duration: 0, bvid: '' }]
+    }
+    return []
+  })()
 
   // 最终保存路径预览 (与后端拼接规则一致)
   const finalDirPreview = [
@@ -259,6 +287,23 @@ export default function DownloadPage() {
             </Button>
           </Tooltip>
         </Space.Compact>
+        {/* 解析模式开关: 单集=只选当前视频; 整个合集=展开全部并全选 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+          <Text type="secondary" style={{ fontSize: 13 }}>解析模式</Text>
+          <Segmented
+            value={parseMode}
+            onChange={v => changeParseMode(v as ParseMode)}
+            options={[
+              { label: '单集', value: 'single' },
+              { label: '整个合集', value: 'collection' },
+            ]}
+          />
+          {info?.is_collection && parseMode === 'single' && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              该视频属于合集「{info.collection?.title}」, 切到「整个合集」可展开全部 {info.collection?.episodes.length} 集
+            </Text>
+          )}
+        </div>
       </Card>
 
       {info && (info.link_type === 'article' || info.link_type === 'image') && renderArticleOrImage()}
