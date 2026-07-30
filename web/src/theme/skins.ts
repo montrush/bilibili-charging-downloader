@@ -272,7 +272,6 @@ SKINS.push(
     decoArcs: false,
     bgImage: '/skins/tokiwadai/bg.webp',
     bgImageOpacity: 0.3,
-    mascot: '/skins/tokiwadai/mascot.webp',
     bgImageMobile: '/skins/tokiwadai/bg-mobile.webp',
     bgImageOpacityMobile: 0.2,
     bgPositionMobile: 'center 30%',
