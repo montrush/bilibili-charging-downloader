@@ -66,3 +66,8 @@ Thumbs.db
 
 # README截图例外
 !docs/screenshots/*.png
+
+# 打包产物
+vendor/
+dist/
+build/

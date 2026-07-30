@@ -1,0 +1,190 @@
+name: Release 安装包
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  BBDOWN_VERSION: '1.6.3'
+  BBDOWN_DATE: '20240814'
+
+jobs:
+  # ================= Windows: Setup.exe + 便携zip =================
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 计算版本号
+        shell: bash
+        run: echo "VER=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package.json
+
+      - name: 构建前端
+        working-directory: web
+        run: |
+          npm install
+          npm run build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 安装Python依赖+PyInstaller
+        run: pip install -r server/requirements.txt pyinstaller
+
+      - name: 下载 BBDown (win-x64)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force vendor | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/nilaoda/BBDown/releases/download/${{ env.BBDOWN_VERSION }}/BBDown_${{ env.BBDOWN_VERSION }}_${{ env.BBDOWN_DATE }}_win-x64.zip" -OutFile "$env:TEMP\bbdown.zip"
+          Expand-Archive "$env:TEMP\bbdown.zip" -DestinationPath vendor -Force
+          Get-ChildItem vendor
+
+      - name: 下载 ffmpeg (gyan essentials)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile "$env:TEMP\ffmpeg.zip"
+          Expand-Archive "$env:TEMP\ffmpeg.zip" -DestinationPath "$env:TEMP\ffmpeg" -Force
+          Copy-Item (Get-ChildItem "$env:TEMP\ffmpeg" -Recurse -Filter ffmpeg.exe | Select-Object -First 1).FullName vendor\ffmpeg.exe
+          Copy-Item (Get-ChildItem "$env:TEMP\ffmpeg" -Recurse -Filter ffprobe.exe | Select-Object -First 1).FullName vendor\ffprobe.exe
+
+      - name: PyInstaller 打包
+        run: pyinstaller packaging/bili_downloader.spec --noconfirm --distpath dist --workpath build
+
+      - name: 冒烟: exe 启动检查
+        shell: pwsh
+        run: |
+          $p = Start-Process "dist\BiliDownloader\BiliDownloader.exe" -PassThru -WindowStyle Hidden
+          $ok = $false
+          foreach ($i in 1..30) {
+            Start-Sleep 2
+            try { $r = Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/health" -TimeoutSec 2; $ok = $true; break } catch {}
+          }
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          if (-not $ok) { throw "exe 冒烟失败: /api/health 不通" }
+          Write-Host "冒烟通过"
+
+      - name: 便携版 zip
+        shell: pwsh
+        run: Compress-Archive -Path dist\BiliDownloader -DestinationPath "dist\BiliDownloader-portable-${{ env.VER }}-win-x64.zip"
+
+      - name: Inno Setup 安装向导
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\setup.iss /DAppVersion=${{ env.VER }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/installer/*.exe
+            dist/*portable*.zip
+
+  # ================= Linux: .deb + tar.gz =================
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 计算版本号
+        run: echo "VER=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package.json
+
+      - name: 构建前端
+        working-directory: web
+        run: |
+          npm install
+          npm run build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 安装Python依赖+PyInstaller
+        run: pip install -r server/requirements.txt pyinstaller
+
+      - name: 下载 BBDown (linux-x64)
+        run: |
+          mkdir -p vendor
+          curl -fL -o /tmp/bbdown.zip "https://github.com/nilaoda/BBDown/releases/download/${BBDOWN_VERSION}/BBDown_${BBDOWN_VERSION}_${BBDOWN_DATE}_linux-x64.zip"
+          unzip -o /tmp/bbdown.zip -d vendor
+          chmod +x vendor/BBDown
+          ls -la vendor
+
+      - name: 下载 ffmpeg (static)
+        run: |
+          curl -fL -o /tmp/ffmpeg.tar.xz "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
+          tar -xJf /tmp/ffmpeg.tar.xz -C /tmp
+          cp /tmp/ffmpeg-*-amd64-static/ffmpeg /tmp/ffmpeg-*-amd64-static/ffprobe vendor/
+          chmod +x vendor/ffmpeg vendor/ffprobe
+
+      - name: PyInstaller 打包
+        run: pyinstaller packaging/bili_downloader.spec --noconfirm --distpath dist --workpath build
+
+      - name: 冒烟: 二进制启动检查
+        run: |
+          ./dist/bili-downloader/bili-downloader &
+          PID=$!
+          ok=0
+          for i in $(seq 1 30); do
+            sleep 2
+            if curl -sf http://127.0.0.1:8000/api/health > /dev/null; then ok=1; break; fi
+          done
+          kill $PID 2>/dev/null || true
+          [ "$ok" = "1" ] || { echo "冒烟失败: /api/health 不通"; exit 1; }
+          echo "冒烟通过"
+
+      - name: tar.gz 包
+        run: tar -czf "dist/bili-downloader_${VER}_linux-x64.tar.gz" -C dist bili-downloader
+
+      - name: 构建 .deb
+        run: |
+          PKG=dist/debroot
+          mkdir -p $PKG/DEBIAN $PKG/opt
+          cp -r dist/bili-downloader $PKG/opt/bili-downloader
+          sed "s/__VERSION__/${VER}/" packaging/linux/DEBIAN/control > $PKG/DEBIAN/control
+          cp packaging/linux/DEBIAN/postinst packaging/linux/DEBIAN/prerm $PKG/DEBIAN/
+          chmod 755 $PKG/DEBIAN/postinst $PKG/DEBIAN/prerm
+          dpkg-deb --build $PKG "dist/bili-downloader_${VER}_amd64.deb"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/*.deb
+            dist/*.tar.gz
+
+  # ================= 汇总发 Release =================
+  publish-release:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: 列出产物
+        run: ls -la artifacts/
+
+      - name: 发布 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          files: artifacts/*
+          generate_release_notes: true

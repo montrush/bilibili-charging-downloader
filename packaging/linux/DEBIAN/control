@@ -1,0 +1,11 @@
+Package: bili-downloader
+Version: __VERSION__
+Section: net
+Priority: optional
+Architecture: amd64
+Maintainer: 侯plus <https://github.com/montrush>
+Description: B站充电视频下载器
+ 下载B站充电专属视频完整版, 支持UGC合集批量下载,
+ 带Web前端(扫码登录+选集下载+实时进度).
+ 内置BBDown+ffmpeg, 开箱即用.
+Homepage: https://github.com/montrush/bilibili-charging-downloader

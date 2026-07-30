@@ -1,0 +1,4 @@
+#!/bin/sh
+# 卸载前: 删命令行软链
+rm -f /usr/local/bin/bili-downloader
+exit 0

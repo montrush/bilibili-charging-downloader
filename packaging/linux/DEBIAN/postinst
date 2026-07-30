@@ -1,0 +1,5 @@
+#!/bin/sh
+# 安装后: 建命令行软链
+set -e
+ln -sf /opt/bili-downloader/bili-downloader /usr/local/bin/bili-downloader
+exit 0
