@@ -1,2 +1,155 @@
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+/* ========== 基础 ========== */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', Roboto, sans-serif;
+  background: var(--skin-bg);
+  background-attachment: fixed;
+  color: var(--text-strong);
+  transition: background .5s ease, color .3s ease;
+  -webkit-font-smoothing: antialiased;
+}
 #root { min-height: 100vh; }
+
+/* ========== 背景光斑 (装饰) ========== */
+.bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.bg-orb { position: absolute; border-radius: 50%; filter: blur(70px); transition: background .5s ease; }
+.bg-orb-1 { width: 520px; height: 520px; top: -160px; right: -100px; background: var(--orb-1); animation: orbFloat 14s ease-in-out infinite; }
+.bg-orb-2 { width: 420px; height: 420px; bottom: -140px; left: -120px; background: var(--orb-2); animation: orbFloat 18s ease-in-out infinite reverse; }
+.bg-orb-3 { width: 360px; height: 360px; top: 38%; left: 55%; background: var(--orb-3); animation: orbFloat 22s ease-in-out infinite 3s; }
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(36px, -28px) scale(1.08); }
+}
+
+/* ========== 布局 ========== */
+.app-header {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 32px;
+  background: var(--header-bg);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border-bottom: 1px solid var(--glass-border);
+  transition: background .5s ease;
+}
+.app-header-brand { display: flex; align-items: center; gap: 12px; }
+.app-header-title { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
+.app-main { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; padding: 32px 24px 64px; }
+
+/* ========== 玻璃拟态卡片 ========== */
+.glass-card {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--glass-shadow) !important;
+  transition: box-shadow .3s ease, background .5s ease, border-color .5s ease;
+}
+.glass-card:hover { box-shadow: var(--glass-hover-shadow) !important; }
+
+/* ========== 渐变文字 / 按钮 ========== */
+.gradient-text {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.btn-glow.ant-btn-primary {
+  background: var(--accent-gradient);
+  border: none;
+  box-shadow: 0 4px 16px var(--accent-glow);
+  font-weight: 600;
+}
+.btn-glow.ant-btn-primary:hover:not(:disabled) {
+  background: var(--accent-gradient);
+  filter: brightness(1.1) saturate(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px var(--accent-glow);
+}
+.btn-glow.ant-btn-primary:active:not(:disabled) { transform: translateY(0); }
+
+/* 幽灵图标按钮 (header用) */
+.icon-btn.ant-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-strong);
+  backdrop-filter: blur(12px);
+}
+.icon-btn.ant-btn:hover {
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  background: var(--glass-bg) !important;
+}
+
+/* 皮肤预览圆点 */
+.skin-dot {
+  display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.5), 0 1px 4px rgba(0,0,0,.2);
+}
+
+/* ========== Hero 区 ========== */
+.hero { text-align: center; margin: 28px 0 36px; }
+.hero-badge {
+  display: inline-block; padding: 4px 14px; margin-bottom: 16px;
+  font-size: 12.5px; letter-spacing: 1px;
+  color: var(--accent);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  backdrop-filter: blur(12px);
+}
+.hero-title { font-size: 40px; font-weight: 800; letter-spacing: 1px; margin: 0 0 10px; }
+.hero-subtitle { font-size: 15px; opacity: .68; margin: 0; }
+
+/* ========== 表格透明化 (透出玻璃底) ========== */
+.glass-card .ant-table,
+.glass-card .ant-table-container,
+.glass-card .ant-table-content,
+.glass-card .ant-table-tbody > tr > td,
+.glass-card .ant-table-tbody > tr.ant-table-row:hover > td,
+.glass-card .ant-table-footer {
+  background: transparent !important;
+}
+.glass-card .ant-table-thead > tr > th {
+  background: var(--table-header-bg) !important;
+  backdrop-filter: blur(8px);
+  font-weight: 600;
+}
+.glass-card .ant-table-tbody > tr > td { transition: background .2s ease; }
+.glass-card .ant-table-tbody > tr.ant-table-row:hover > td {
+  background: var(--table-header-bg) !important;
+}
+.glass-card .ant-table-tbody > tr.ant-table-row-selected > td {
+  background: var(--table-header-bg) !important;
+}
+
+/* ========== 入场动画 ========== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.anim-enter { animation: fadeInUp .55s cubic-bezier(.22, .8, .32, 1) both; }
+.anim-delay-1 { animation-delay: .08s; }
+.anim-delay-2 { animation-delay: .16s; }
+.anim-delay-3 { animation-delay: .24s; }
+.anim-delay-4 { animation-delay: .32s; }
+
+/* ========== 滚动条 ========== */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--accent-glow);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--accent); background-clip: padding-box; }
+
+/* ========== 分页/标签等细节 ========== */
+.ant-pagination .ant-pagination-item-active {
+  border-color: var(--accent);
+}

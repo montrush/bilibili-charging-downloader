@@ -1,0 +1,154 @@
+// 皮肤注册表 - 换肤接口的唯一真值.
+// 未来新增皮肤: 在 SKINS 数组加一条配置即可, 无需改任何组件.
+import type { ThemeConfig } from 'antd'
+
+export interface Skin {
+  id: string
+  /** 显示名 */
+  name: string
+  /** 色系: 淡色 / 暗色 */
+  mode: 'light' | 'dark'
+  /** 切换器里的预览圆点 */
+  preview: string
+  /** 注入到 :root 的 CSS 变量 */
+  vars: Record<string, string>
+  /** antd token 覆盖 (algorithm 由 mode 自动决定) */
+  antd: ThemeConfig
+}
+
+export const SKINS: Skin[] = [
+  {
+    id: 'sunrise',
+    name: '晨曦',
+    mode: 'light',
+    preview: 'linear-gradient(135deg,#fbbf24,#f97316)',
+    vars: {
+      '--skin-bg': 'linear-gradient(155deg,#fff9f0 0%,#fdeed8 45%,#fef1e0 75%,#fff6ea 100%)',
+      '--orb-1': 'radial-gradient(circle, rgba(251,146,60,.42), transparent 65%)',
+      '--orb-2': 'radial-gradient(circle, rgba(252,211,77,.38), transparent 65%)',
+      '--orb-3': 'radial-gradient(circle, rgba(251,113,133,.28), transparent 65%)',
+      '--glass-bg': 'rgba(255,255,255,.62)',
+      '--glass-border': 'rgba(255,255,255,.78)',
+      '--glass-shadow': '0 8px 32px rgba(194,120,52,.14)',
+      '--glass-hover-shadow': '0 12px 40px rgba(194,120,52,.20)',
+      '--header-bg': 'rgba(255,250,242,.72)',
+      '--table-header-bg': 'rgba(255,243,228,.85)',
+      '--accent': '#f97316',
+      '--accent-2': '#fbbf24',
+      '--accent-gradient': 'linear-gradient(135deg,#fbbf24 0%,#f97316 55%,#ea580c 100%)',
+      '--accent-glow': 'rgba(249,115,22,.35)',
+      '--text-strong': '#3d2b1f',
+    },
+    antd: {
+      token: {
+        colorPrimary: '#f97316',
+        colorInfo: '#f97316',
+        colorLink: '#ea580c',
+        colorTextBase: '#3d2b1f',
+        colorBgBase: '#fdf3e3',
+        borderRadius: 12,
+      },
+    },
+  },
+  {
+    id: 'peach',
+    name: '蜜桃',
+    mode: 'light',
+    preview: 'linear-gradient(135deg,#fda4af,#f43f5e)',
+    vars: {
+      '--skin-bg': 'linear-gradient(155deg,#fff7f5 0%,#ffe9e4 50%,#fff1ec 100%)',
+      '--orb-1': 'radial-gradient(circle, rgba(251,113,133,.36), transparent 65%)',
+      '--orb-2': 'radial-gradient(circle, rgba(253,164,175,.34), transparent 65%)',
+      '--orb-3': 'radial-gradient(circle, rgba(251,146,60,.26), transparent 65%)',
+      '--glass-bg': 'rgba(255,255,255,.62)',
+      '--glass-border': 'rgba(255,255,255,.78)',
+      '--glass-shadow': '0 8px 32px rgba(210,90,90,.13)',
+      '--glass-hover-shadow': '0 12px 40px rgba(210,90,90,.19)',
+      '--header-bg': 'rgba(255,246,244,.72)',
+      '--table-header-bg': 'rgba(255,236,232,.85)',
+      '--accent': '#f43f5e',
+      '--accent-2': '#fda4af',
+      '--accent-gradient': 'linear-gradient(135deg,#fda4af 0%,#fb7185 50%,#f43f5e 100%)',
+      '--accent-glow': 'rgba(244,63,94,.32)',
+      '--text-strong': '#402022',
+    },
+    antd: {
+      token: {
+        colorPrimary: '#f43f5e',
+        colorInfo: '#f43f5e',
+        colorLink: '#e11d48',
+        colorTextBase: '#402022',
+        colorBgBase: '#fdecea',
+        borderRadius: 12,
+      },
+    },
+  },
+  {
+    id: 'dusk',
+    name: '暮色',
+    mode: 'dark',
+    preview: 'linear-gradient(135deg,#fde68a,#b45309)',
+    vars: {
+      '--skin-bg': 'linear-gradient(155deg,#191009 0%,#231709 45%,#1b110b 100%)',
+      '--orb-1': 'radial-gradient(circle, rgba(249,115,22,.22), transparent 65%)',
+      '--orb-2': 'radial-gradient(circle, rgba(252,211,77,.13), transparent 65%)',
+      '--orb-3': 'radial-gradient(circle, rgba(194,65,12,.18), transparent 65%)',
+      '--glass-bg': 'rgba(43,30,18,.55)',
+      '--glass-border': 'rgba(255,190,120,.14)',
+      '--glass-shadow': '0 8px 32px rgba(0,0,0,.45)',
+      '--glass-hover-shadow': '0 12px 40px rgba(0,0,0,.55)',
+      '--header-bg': 'rgba(26,17,10,.72)',
+      '--table-header-bg': 'rgba(62,44,26,.55)',
+      '--accent': '#fbbf24',
+      '--accent-2': '#fde68a',
+      '--accent-gradient': 'linear-gradient(135deg,#fde68a 0%,#fbbf24 45%,#f59e0b 100%)',
+      '--accent-glow': 'rgba(251,191,36,.30)',
+      '--text-strong': '#f3e7d8',
+    },
+    antd: {
+      token: {
+        colorPrimary: '#fbbf24',
+        colorInfo: '#fbbf24',
+        colorLink: '#fcd34d',
+        colorTextBase: '#f3e7d8',
+        colorBgBase: '#1b120b',
+        borderRadius: 12,
+      },
+    },
+  },
+  {
+    id: 'ember',
+    name: '熔岩',
+    mode: 'dark',
+    preview: 'linear-gradient(135deg,#fdba74,#dc2626)',
+    vars: {
+      '--skin-bg': 'linear-gradient(155deg,#170c0a 0%,#241010 50%,#180d0b 100%)',
+      '--orb-1': 'radial-gradient(circle, rgba(239,68,68,.20), transparent 65%)',
+      '--orb-2': 'radial-gradient(circle, rgba(249,115,22,.20), transparent 65%)',
+      '--orb-3': 'radial-gradient(circle, rgba(220,38,38,.14), transparent 65%)',
+      '--glass-bg': 'rgba(38,20,14,.58)',
+      '--glass-border': 'rgba(255,150,110,.14)',
+      '--glass-shadow': '0 8px 32px rgba(0,0,0,.48)',
+      '--glass-hover-shadow': '0 12px 40px rgba(0,0,0,.58)',
+      '--header-bg': 'rgba(24,12,9,.72)',
+      '--table-header-bg': 'rgba(66,32,22,.55)',
+      '--accent': '#fb923c',
+      '--accent-2': '#fdba74',
+      '--accent-gradient': 'linear-gradient(135deg,#fdba74 0%,#fb923c 40%,#ef4444 100%)',
+      '--accent-glow': 'rgba(249,115,22,.35)',
+      '--text-strong': '#f6e4da',
+    },
+    antd: {
+      token: {
+        colorPrimary: '#f97316',
+        colorInfo: '#f97316',
+        colorLink: '#fb923c',
+        colorTextBase: '#f6e4da',
+        colorBgBase: '#1d100c',
+        borderRadius: 12,
+      },
+    },
+  },
+]
+
+export const DEFAULT_SKIN = 'sunrise'

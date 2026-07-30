@@ -17,9 +17,18 @@ login*.log
 info*.txt
 help.txt
 server_stdout.log
+server_stdout_*.log
 server_stderr.log
 finalize.log
 watcher.log
+
+# 截图/调试临时工具
+tools/
+shots/
+
+# cloudflared 隧道工具(按需下载)
+cloudflared.exe
+cloudflared
 
 # 下载的视频和进度文件
 downloads/

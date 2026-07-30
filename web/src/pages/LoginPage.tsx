@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Card, Typography, Alert, Spin } from 'antd'
 import { loginApi } from '../api'
+import Logo from '../components/Logo'
 
-const { Title, Text } = Typography
+const { Text } = Typography
 
 export default function LoginPage({ onLogin }: { onLogin: () => void }) {
   const [qr, setQr] = useState<{ qr_base64: string; qrcode_key: string } | null>(null)
@@ -34,16 +35,25 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
   }, [])
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f0f2f5' }}>
-      <Card style={{ width: 380, textAlign: 'center' }}>
-        <Title level={4}>B站充电视频下载器</Title>
-        <Text type="secondary">{msg}</Text>
-        <div style={{ margin: '20px 0' }}>
-          {loading || !qr ? <Spin size="large" /> :
-            <img src={qr.qr_base64} alt="二维码" style={{ width: 240, height: 240 }} />}
+    <main className="app-main" style={{ display: 'flex', justifyContent: 'center', paddingTop: 64 }}>
+      <Card className="glass-card anim-enter" style={{ width: 400, textAlign: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <Logo size={56} />
+          <h2 className="gradient-text" style={{ margin: '8px 0 0', fontSize: 22, fontWeight: 800 }}>扫码登录</h2>
+          <Text type="secondary">{msg}</Text>
         </div>
-        <Alert type="info" showIcon message="扫码登录后可下载充电专属视频完整版" />
+        <div style={{ margin: '20px 0' }}>
+          {loading || !qr ? <Spin size="large" /> : (
+            <div style={{
+              display: 'inline-block', padding: 12, borderRadius: 16,
+              background: '#fff', boxShadow: '0 4px 20px var(--accent-glow)',
+            }}>
+              <img src={qr.qr_base64} alt="二维码" style={{ width: 220, height: 220, display: 'block' }} />
+            </div>
+          )}
+        </div>
+        <Alert type="info" showIcon message="扫码登录后可下载充电专属视频完整版" style={{ borderRadius: 12 }} />
       </Card>
-    </div>
+    </main>
   )
 }

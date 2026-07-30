@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
-"""B站视频解析+下载服务."""
+"""B站视频解析+下载服务.
+
+支持的链接类型:
+- 视频: https://www.bilibili.com/video/BVxxx / avxxx
+- 短链/微信分享: https://b23.tv/xxx (自动302解析)
+- 合集:
+  - https://space.bilibili.com/{mid}/channel/collectiondetail?sid={sid}
+  - https://www.bilibili.com/video/BVxxx/?...&sid={sid}
+- 文章: https://www.bilibili.com/read/cv{id}
+- 图片/动态: https://t.bilibili.com/{id}, https://h.bilibili.com/{id}, https://www.bilibili.com/opus/{id}
+"""
 import os, re, json, subprocess, datetime
 
 PROJ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -9,7 +19,9 @@ FILE_PATTERN = '<videoTitle>_<videoDate>'
 
 
 def resolve_url(url):
-    """短链 -> 最终URL."""
+    """短链/微信分享 -> 最终URL."""
+    if not url:
+        return url
     if not url.startswith('http'):
         url = 'https://' + url
     try:
@@ -20,25 +32,65 @@ def resolve_url(url):
         return url
 
 
-def parse_aid(url):
-    """从URL提取aid. 返回aid字符串或None."""
+def detect_link_type(url):
+    """识别链接类型: video/collection/article/image/unknown."""
+    if not url:
+        return 'unknown'
     resolved = resolve_url(url)
-    m = re.search(r'av(\d+)', resolved)
-    if m:
-        return m.group(1)
-    m = re.search(r'(BV\w+)', resolved)
-    if m:
-        import requests
-        r = requests.get('https://api.bilibili.com/x/web-interface/view',
-                         params={'bvid': m.group(1)}, headers=HEADERS, timeout=15)
-        d = r.json()
-        if d.get('code') == 0:
-            return str(d['data']['aid'])
+    lo = resolved.lower()
+    if re.search(r'/read/cv\d+', lo):
+        return 'article'
+    if re.search(r'/(t|h|opus)/\d+', lo) or re.search(r'\b[th]\.bilibili\.com\b', lo):
+        return 'image'
+    if re.search(r'/channel/collectiondetail', lo) or re.search(r'[?&]sid=\d+', lo):
+        return 'collection'
+    if re.search(r'/video/(av\d+|bv\w+)', lo):
+        return 'video'
+    return 'unknown'
+
+
+def extract_bvid(url):
+    m = re.search(r'(BV\w+)', url)
+    return m.group(1) if m else None
+
+
+def extract_aid(url):
+    m = re.search(r'av(\d+)', url, re.I)
+    return m.group(1) if m else None
+
+
+def extract_sid(url):
+    m = re.search(r'[?&]sid=(\d+)', url)
+    return m.group(1) if m else None
+
+
+def extract_mid(url):
+    m = re.search(r'space\.bilibili\.com/(\d+)', url)
+    return m.group(1) if m else None
+
+
+def extract_cv_id(url):
+    m = re.search(r'/read/cv(\d+)', url)
+    return m.group(1) if m else None
+
+
+def extract_dynamic_id(url):
+    m = re.search(r'/(t|h|opus)/(\d+)', url)
+    return m.group(2) if m else None
+
+
+def bvid_to_aid(bvid):
+    import requests
+    r = requests.get('https://api.bilibili.com/x/web-interface/view',
+                     params={'bvid': bvid}, headers=HEADERS, timeout=15)
+    d = r.json()
+    if d.get('code') == 0:
+        return str(d['data']['aid'])
     return None
 
 
 def get_video_info(aid, cookie=None):
-    """查视频信息+合集. 返回 dict."""
+    """查视频信息+UGC合集. 返回 dict."""
     import requests
     headers = dict(HEADERS)
     if cookie:
@@ -51,6 +103,7 @@ def get_video_info(aid, cookie=None):
     data = d['data']
     result = {
         'aid': str(aid),
+        'bvid': data.get('bvid', ''),
         'title': data.get('title', ''),
         'pubdate': data.get('pubdate', 0),
         'date': datetime.datetime.fromtimestamp(data.get('pubdate', 0)).strftime('%Y-%m-%d') if data.get('pubdate') else '',
@@ -67,6 +120,7 @@ def get_video_info(aid, cookie=None):
                 pubdate = arc.get('pubdate', 0)
                 eps.append({
                     'aid': str(ep['aid']),
+                    'bvid': ep.get('bvid', ''),
                     'title': ep['title'],
                     'date': datetime.datetime.fromtimestamp(pubdate).strftime('%Y-%m-%d') if pubdate else '',
                     'duration': arc.get('duration', 0),
@@ -78,6 +132,198 @@ def get_video_info(aid, cookie=None):
             'episodes': eps,
         }
     return result
+
+
+def fetch_collection_by_sid(sid, mid=None, cookie=None):
+    """通过空间合集 sid 获取视频列表."""
+    import requests
+    headers = dict(HEADERS)
+    if cookie:
+        headers['Cookie'] = cookie
+
+    # 如果不知道 mid, 先查 season 元数据
+    if not mid:
+        r = requests.get(
+            'https://api.bilibili.com/x/polymer/web-space/seasons_archives_list',
+            params={'season_id': sid, 'page_num': 1, 'page_size': 1},
+            headers=headers, timeout=15,
+        )
+        try:
+            meta = r.json().get('data', {}).get('meta', {})
+            mid = meta.get('mid')
+        except Exception:
+            pass
+
+    if not mid:
+        return None
+
+    archives = []
+    page_num = 1
+    while True:
+        r = requests.get(
+            'https://api.bilibili.com/x/polymer/web-space/seasons_archives_list',
+            params={'mid': mid, 'season_id': sid, 'page_num': page_num, 'page_size': 30},
+            headers=headers, timeout=15,
+        )
+        d = r.json()
+        if d.get('code') != 0:
+            break
+        items = d.get('data', {}).get('archives', [])
+        if not items:
+            break
+        for item in items:
+            pubdate = item.get('pubdate', 0)
+            archives.append({
+                'aid': str(item['aid']),
+                'bvid': item.get('bvid', ''),
+                'title': item.get('title', ''),
+                'date': datetime.datetime.fromtimestamp(pubdate).strftime('%Y-%m-%d') if pubdate else '',
+                'duration': item.get('duration', 0),
+            })
+        if len(items) < 30:
+            break
+        page_num += 1
+
+    return archives
+
+
+def fetch_article_info(cv_id):
+    """获取专栏文章信息."""
+    import requests
+    r = requests.get('https://api.bilibili.com/x/article/viewinfo',
+                     params={'id': cv_id}, headers=HEADERS, timeout=15)
+    d = r.json()
+    if d.get('code') != 0:
+        return None
+    data = d['data']
+    stats = data.get('stats', {})
+    return {
+        'cv_id': cv_id,
+        'title': data.get('title', ''),
+        'author': data.get('author_name', ''),
+        'banner_url': data.get('banner_url', ''),
+        'summary': data.get('summary', ''),
+        'words': data.get('words', 0),
+        'view': stats.get('view', 0),
+    }
+
+
+def fetch_image_info(dynamic_id):
+    """获取动态/图片信息."""
+    import requests
+    r = requests.get('https://api.bilibili.com/x/polymer/web-dynamic/v1/detail',
+                     params={'id': dynamic_id}, headers=HEADERS, timeout=15)
+    d = r.json()
+    if d.get('code') != 0:
+        return None
+    item = d.get('data', {}).get('item', {})
+    modules = item.get('modules', {})
+    module_author = modules.get('module_author', {})
+    module_dynamic = modules.get('module_dynamic', {})
+    desc = module_dynamic.get('desc', {})
+    major = module_dynamic.get('major', {})
+    pics = []
+    if major:
+        if 'opus' in major:
+            for pic in major.get('opus', {}).get('pics', []):
+                pics.append(pic.get('url', ''))
+        elif 'draw' in major:
+            for pic in major.get('draw', {}).get('items', []):
+                pics.append(pic.get('src', ''))
+    return {
+        'dynamic_id': dynamic_id,
+        'author': module_author.get('name', ''),
+        'content': desc.get('text', ''),
+        'pictures': pics,
+    }
+
+
+def parse_link(url, cookie=None):
+    """统一解析入口.
+
+    返回包含 link_type 的 dict, 识别失败返回 None.
+    """
+    if not url:
+        return None
+
+    resolved = resolve_url(url)
+    link_type = detect_link_type(resolved)
+    result = {
+        'link_type': link_type,
+        'raw_url': url,
+        'resolved_url': resolved,
+    }
+
+    if link_type == 'article':
+        cv_id = extract_cv_id(resolved)
+        info = fetch_article_info(cv_id) if cv_id else None
+        result.update({
+            'title': info.get('title', '') if info else '专栏文章',
+            'article_info': info or {},
+            'message': '识别为专栏文章，暂不支持下载',
+        })
+        return result
+
+    if link_type == 'image':
+        dynamic_id = extract_dynamic_id(resolved)
+        info = fetch_image_info(dynamic_id) if dynamic_id else None
+        content = (info or {}).get('content', '')
+        result.update({
+            'title': (content[:50] + '...') if len(content) > 50 else (content or '图片动态'),
+            'image_info': info or {},
+            'message': '识别为图片动态，暂不支持下载',
+        })
+        return result
+
+    # 视频 / 合集
+    sid = extract_sid(resolved)
+    mid = extract_mid(resolved)
+    bvid = extract_bvid(resolved)
+    aid = extract_aid(resolved)
+
+    if not aid and bvid:
+        aid = bvid_to_aid(bvid)
+
+    if sid:
+        collection = fetch_collection_by_sid(sid, mid=mid, cookie=cookie)
+        if collection:
+            result.update({
+                'aid': '',
+                'bvid': bvid or '',
+                'title': f'合集 #{sid}',
+                'date': '',
+                'duration': 0,
+                'is_collection': True,
+                'collection': {
+                    'season_id': sid,
+                    'title': f'合集 #{sid}',
+                    'episodes': collection,
+                },
+                'message': f'识别为空间合集，共 {len(collection)} 个视频',
+            })
+            return result
+        # sid 匹配但拿不到合集, 可能是过期/无效 sid, 降级为普通视频
+        result['link_type'] = 'video'
+
+    if aid:
+        info = get_video_info(aid, cookie)
+        if info:
+            result.update(info)
+            if info.get('is_collection'):
+                result['link_type'] = 'collection'
+                result['message'] = f"识别为UGC合集，共 {len(info.get('collection', {}).get('episodes', []))} 个视频"
+            else:
+                result['link_type'] = 'video'
+                result['message'] = '识别为视频'
+            return result
+
+    # 能识别类型但拿不到详情, 返回基础信息
+    result['message'] = '链接类型已识别，但无法获取详情'
+    return result
+
+
+# 兼容旧接口
+parse_aid = lambda url: parse_link(url, cookie=None)
 
 
 def find_bbdown():

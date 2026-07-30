@@ -3,6 +3,8 @@ import { Spin } from 'antd'
 import { loginApi } from './api'
 import LoginPage from './pages/LoginPage'
 import DownloadPage from './pages/DownloadPage'
+import SkinSwitcher from './components/SkinSwitcher'
+import Logo from './components/Logo'
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
@@ -18,13 +20,31 @@ export default function App() {
 
   useEffect(() => { checkLogin() }, [])
 
-  if (loggedIn === null) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin size="large" />
+  return (
+    <>
+      <div className="bg-orbs">
+        <div className="bg-orb bg-orb-1" />
+        <div className="bg-orb bg-orb-2" />
+        <div className="bg-orb bg-orb-3" />
       </div>
-    )
-  }
-  if (!loggedIn) return <LoginPage onLogin={() => setLoggedIn(true)} />
-  return <DownloadPage />
+
+      <header className="app-header">
+        <div className="app-header-brand">
+          <Logo size={34} />
+          <span className="app-header-title gradient-text">B站充电视频下载器</span>
+        </div>
+        <SkinSwitcher />
+      </header>
+
+      {loggedIn === null ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh', position: 'relative', zIndex: 1 }}>
+          <Spin size="large" />
+        </div>
+      ) : loggedIn ? (
+        <DownloadPage />
+      ) : (
+        <LoginPage onLogin={() => setLoggedIn(true)} />
+      )}
+    </>
+  )
 }
