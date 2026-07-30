@@ -74,7 +74,26 @@ body {
   background: var(--accent-glow);
   transform: translateY(-1px);
 }
-.bg-orb { position: absolute; border-radius: 50%; filter: blur(70px); transition: background .5s ease; }
+
+/* ========== 弹层(下拉/气泡) 不透明 + 最高层级 ========== */
+.ant-select-dropdown,
+.ant-dropdown .ant-dropdown-menu {
+  z-index: 3000 !important;
+  background: var(--popup-bg) !important;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+.ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  background: var(--accent-glow);
+}
+
+/* ========== 性能: 减少动画/滤镜开销 ========== */
+@media (prefers-reduced-motion: reduce) {
+  .bg-orb, .railgun-arc, .railgun-coin, .railgun-spark, .hero-title { animation: none !important; }
+}
+.bg-orb { position: absolute; border-radius: 50%; filter: blur(48px); transition: background .5s ease; will-change: transform; transform: translateZ(0); }
 .bg-orb-1 { width: 520px; height: 520px; top: -160px; right: -100px; background: var(--orb-1); animation: orbFloat 14s ease-in-out infinite; }
 .bg-orb-2 { width: 420px; height: 420px; bottom: -140px; left: -120px; background: var(--orb-2); animation: orbFloat 18s ease-in-out infinite reverse; }
 .bg-orb-3 { width: 360px; height: 360px; top: 38%; left: 55%; background: var(--orb-3); animation: orbFloat 22s ease-in-out infinite 3s; }
@@ -89,8 +108,8 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 32px;
   background: var(--header-bg);
-  backdrop-filter: blur(20px) saturate(1.5);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  backdrop-filter: blur(12px) saturate(1.5);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
   border-bottom: 1px solid var(--glass-border);
   transition: background .5s ease;
 }
@@ -116,8 +135,8 @@ body {
 /* ========== 玻璃拟态卡片 ========== */
 .glass-card {
   background: var(--glass-bg) !important;
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(10px) saturate(1.4);
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
   border: 1px solid var(--glass-border) !important;
   border-radius: 18px !important;
   box-shadow: var(--glass-shadow) !important;
@@ -248,8 +267,8 @@ body {
 /* ========== 状态窗口 (信息面板) ========== */
 .info-panel {
   background: var(--glass-bg);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(10px) saturate(1.4);
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
   border: 1px solid var(--glass-border);
   border-radius: 18px;
   box-shadow: var(--glass-shadow);
