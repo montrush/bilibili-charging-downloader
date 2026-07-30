@@ -6,6 +6,7 @@ import DownloadPage from './pages/DownloadPage'
 import SkinSwitcher from './components/SkinSwitcher'
 import Logo from './components/Logo'
 import RailgunDeco from './components/RailgunDeco'
+import AuthorFooter from './components/AuthorFooter'
 import { useSkin } from './theme/ThemeContext'
 
 export default function App() {
@@ -56,6 +57,8 @@ export default function App() {
       ) : (
         <LoginPage onLogin={() => setLoggedIn(true)} />
       )}
+
+      <AuthorFooter />
     </>
   )
 }

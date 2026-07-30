@@ -33,6 +33,47 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 @media (max-width: 1100px) { .skin-mascot { display: none; } }
+
+/* ========== 作者页脚 ========== */
+.author-footer {
+  position: relative; z-index: 1;
+  display: flex; justify-content: center;
+  padding: 12px 16px 28px;
+}
+.author-footer-inner {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
+  padding: 10px 22px; border-radius: 999px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: box-shadow .3s ease;
+}
+.author-footer-inner:hover { box-shadow: var(--glass-hover-shadow); }
+.author-avatar {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.author-name {
+  font-size: 15px; font-weight: 700; color: var(--text-strong);
+  background: var(--accent-gradient);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.author-divider {
+  width: 1px; height: 18px; background: var(--glass-border);
+}
+.author-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--text-strong); opacity: .75;
+  padding: 4px 10px; border-radius: 999px;
+  transition: all .25s ease; text-decoration: none;
+}
+.author-link:hover {
+  opacity: 1; color: var(--accent);
+  background: var(--accent-glow);
+  transform: translateY(-1px);
+}
 .bg-orb { position: absolute; border-radius: 50%; filter: blur(70px); transition: background .5s ease; }
 .bg-orb-1 { width: 520px; height: 520px; top: -160px; right: -100px; background: var(--orb-1); animation: orbFloat 14s ease-in-out infinite; }
 .bg-orb-2 { width: 420px; height: 420px; bottom: -140px; left: -120px; background: var(--orb-2); animation: orbFloat 18s ease-in-out infinite reverse; }
