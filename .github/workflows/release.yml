@@ -58,7 +58,7 @@ jobs:
       - name: PyInstaller 打包
         run: pyinstaller packaging/bili_downloader.spec --noconfirm --distpath dist --workpath build
 
-      - name: 冒烟: exe 启动检查
+      - name: "冒烟: exe 启动检查"
         shell: pwsh
         run: |
           $p = Start-Process "dist\BiliDownloader\BiliDownloader.exe" -PassThru -WindowStyle Hidden
@@ -134,7 +134,7 @@ jobs:
       - name: PyInstaller 打包
         run: pyinstaller packaging/bili_downloader.spec --noconfirm --distpath dist --workpath build
 
-      - name: 冒烟: 二进制启动检查
+      - name: "冒烟: 二进制启动检查"
         run: |
           ./dist/bili-downloader/bili-downloader &
           PID=$!
