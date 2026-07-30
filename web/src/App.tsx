@@ -51,7 +51,7 @@ export default function App() {
         <div className="bg-orb bg-orb-2" />
         <div className="bg-orb bg-orb-3" />
       </div>
-      {(skin.deco === 'railgun') && <RailgunDeco />}
+      {(skin.deco === 'railgun') && <RailgunDeco arcs={skin.decoArcs ?? true} />}
       {skin.mascot && <img className="skin-mascot" src={skin.mascot} alt="" draggable={false} />}
 
       <header className="app-header">

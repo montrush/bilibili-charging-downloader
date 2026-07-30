@@ -12,6 +12,8 @@ export interface Skin {
   preview: string
   /** 背景装饰类型 (默认orbs光斑; railgun=电磁炮电弧+金币) */
   deco?: 'orbs' | 'railgun'
+  /** deco=railgun时是否显示电弧+火花 (默认true; false=只留金币, 常盘台定稿) */
+  decoArcs?: boolean
   /** SD生成的背景图 (public/下的路径, 如 /skins/railgun/bg.webp) */
   bgImage?: string
   /** 背景图不透明度 (默认0.32) */
@@ -267,6 +269,7 @@ SKINS.push(
     name: '常盘台',
     mode: 'light',
     deco: 'railgun',
+    decoArcs: false,
     bgImage: '/skins/tokiwadai/bg.webp',
     bgImageOpacity: 0.3,
     mascot: '/skins/tokiwadai/mascot.webp',
