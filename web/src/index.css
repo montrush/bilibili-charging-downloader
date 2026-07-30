@@ -102,7 +102,7 @@ body {
 
 /* ========== 性能: 减少动画/滤镜开销 ========== */
 @media (prefers-reduced-motion: reduce) {
-  .bg-orb, .railgun-arc, .railgun-coin, .railgun-spark, .hero-title { animation: none !important; }
+  .bg-orb, .railgun-coin, .hero-title { animation: none !important; }
 }
 .bg-orb { position: absolute; border-radius: 50%; filter: blur(48px); transition: background .5s ease; will-change: transform; transform: translateZ(0); }
 .bg-orb-1 { width: 520px; height: 520px; top: -160px; right: -100px; background: var(--orb-1); animation: orbFloat 14s ease-in-out infinite; }
@@ -367,27 +367,8 @@ body {
 }
 
 /* ========== 超电磁炮装饰 (deco=railgun) ========== */
+/* 用户定稿: 只保留金币, 去掉电弧和火花粒子 */
 .railgun-deco { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-
-/* 电弧: 发光 + 不规则闪烁 (biribiri) */
-.railgun-arc {
-  position: absolute;
-  color: var(--accent-2, #fbbf24);
-  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 18px currentColor);
-}
-.arc-tl { top: 48px; left: -60px; width: 520px; animation: arcFlicker 3.7s linear infinite; }
-.arc-br { bottom: 40px; right: -60px; width: 560px; animation: arcFlicker 4.6s linear infinite 1.2s; }
-[data-skin-mode="light"] .railgun-arc { color: #38bdf8; opacity: .55; }
-@keyframes arcFlicker {
-  0%, 100% { opacity: .8; }
-  6% { opacity: .2; }
-  9% { opacity: .85; }
-  28% { opacity: .45; }
-  31% { opacity: .9; }
-  57% { opacity: .3; }
-  60% { opacity: .75; }
-  82% { opacity: .5; }
-}
 
 /* 御坂金币: 3D翻转 + 上下漂浮 */
 .railgun-coin {
@@ -399,25 +380,6 @@ body {
 @keyframes coinFlip {
   0%, 100% { transform: rotateY(0deg) translateY(0); }
   50% { transform: rotateY(180deg) translateY(-16px); }
-}
-
-/* 火花粒子 */
-.railgun-spark {
-  position: absolute; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--accent-2, #fbbf24);
-  box-shadow: 0 0 8px 2px var(--accent-2, #fbbf24);
-  animation: sparkFloat 5s ease-in-out infinite;
-}
-[data-skin-mode="light"] .railgun-spark { background: #38bdf8; box-shadow: 0 0 8px 2px #38bdf8; }
-.spark-1 { top: 18%; left: 12%; animation-delay: 0s; }
-.spark-2 { top: 32%; left: 86%; animation-delay: 1s; }
-.spark-3 { top: 62%; left: 6%; animation-delay: 2.2s; }
-.spark-4 { top: 76%; left: 90%; animation-delay: 3.1s; }
-.spark-5 { top: 48%; left: 50%; animation-delay: 4s; }
-@keyframes sparkFloat {
-  0%, 100% { opacity: 0; transform: translateY(0) scale(.6); }
-  30% { opacity: .9; transform: translateY(-22px) scale(1); }
-  60% { opacity: .4; transform: translateY(-40px) scale(.8); }
 }
 
 /* ========== 性能: 关闭背景模糊(hover触发大面积重绘=鼠标移动卡顿根因), 用高不透明度底色 ========== */
