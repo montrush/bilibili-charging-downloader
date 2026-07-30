@@ -25,7 +25,6 @@ body {
 .skin-mascot {
   position: fixed; right: 12px; bottom: 0; z-index: 0; pointer-events: none;
   height: min(52vh, 560px); user-select: none;
-  filter: drop-shadow(0 8px 28px rgba(0,0,0,.35));
   animation: mascotIn .9s cubic-bezier(.22,1,.36,1) both;
 }
 @keyframes mascotIn {

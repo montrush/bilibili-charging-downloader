@@ -12,7 +12,7 @@ export interface Skin {
   preview: string
   /** 背景装饰类型 (默认orbs光斑; railgun=电磁炮电弧+金币) */
   deco?: 'orbs' | 'railgun'
-  /** SD生成的背景图 (public/下的路径, 如 /skins/railgun/bg.png) */
+  /** SD生成的背景图 (public/下的路径, 如 /skins/railgun/bg.webp) */
   bgImage?: string
   /** 背景图不透明度 (默认0.32) */
   bgImageOpacity?: number
@@ -172,9 +172,9 @@ SKINS.push(
     name: '电磁炮',
     mode: 'dark',
     deco: 'railgun',
-    bgImage: '/skins/railgun/bg.png',
+    bgImage: '/skins/railgun/bg.webp',
     bgImageOpacity: 0.35,
-    mascot: '/skins/railgun/mascot.png',
+    mascot: '/skins/railgun/mascot.webp',
     preview: 'linear-gradient(135deg,#38bdf8,#fbbf24)',
     vars: {
       '--skin-bg': 'linear-gradient(155deg,#070d1a 0%,#0b1730 45%,#0a1020 100%)',
@@ -210,9 +210,9 @@ SKINS.push(
     name: '常盘台',
     mode: 'light',
     deco: 'railgun',
-    bgImage: '/skins/tokiwadai/bg.png',
+    bgImage: '/skins/tokiwadai/bg.webp',
     bgImageOpacity: 0.3,
-    mascot: '/skins/tokiwadai/mascot.png',
+    mascot: '/skins/tokiwadai/mascot.webp',
     preview: 'linear-gradient(135deg,#d97706,#38bdf8)',
     vars: {
       '--skin-bg': 'linear-gradient(155deg,#fbf4e6 0%,#f5e8d2 50%,#f9efe0 100%)',
