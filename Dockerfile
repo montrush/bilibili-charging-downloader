@@ -8,10 +8,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# 下载 BBDown Linux版
+# 下载 BBDown Linux版 (多架构: amd64/arm64)
+ARG TARGETARCH
 ARG BBDOWN_VERSION=1.6.3
-RUN curl -L -o /tmp/bbdown.zip \
-    "https://github.com/nilaoda/BBDown/releases/download/v${BBDOWN_VERSION}/BBDown_${BBDOWN_VERSION}_linux_x64.zip" \
+ARG BBDOWN_DATE=20240814
+RUN set -eux; \
+    case "$TARGETARCH" in \
+      amd64) arch=x64 ;; \
+      arm64) arch=arm64 ;; \
+      *) echo "unsupported arch: $TARGETARCH"; exit 1 ;; \
+    esac; \
+    curl -fL -o /tmp/bbdown.zip \
+      "https://github.com/nilaoda/BBDown/releases/download/${BBDOWN_VERSION}/BBDown_${BBDOWN_VERSION}_${BBDOWN_DATE}_linux-${arch}.zip" \
     && unzip /tmp/bbdown.zip -d /tmp/bbdown \
     && mv /tmp/bbdown/BBDown /usr/local/bin/BBDown \
     && chmod +x /usr/local/bin/BBDown \
