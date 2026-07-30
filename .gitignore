@@ -1,0 +1,37 @@
+# 敏感文件 - 绝对不能提交(含登录态/cookie)
+bili_cookie.txt
+BBDown.data
+*.data
+
+# 二维码图片(含登录信息)
+*.png
+qrcode*.png
+bili_qr*.png
+
+# 日志(可能含SESSDATA)
+*.log
+bili_login_status.txt
+batch_download*.log
+login*.log
+info*.txt
+help.txt
+
+# 下载的视频和进度文件
+downloads/
+download_done.txt
+episodes.json
+preview_aids.json
+
+# BBDown二进制(第三方工具, 不打包, README提供下载链接)
+BBDown.exe
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
