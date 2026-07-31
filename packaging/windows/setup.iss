@@ -11,7 +11,7 @@ AppPublisher=侯plus
 AppPublisherURL=https://github.com/montrush/bilibili-charging-downloader
 DefaultDirName={autopf}\BiliDownloader
 DefaultGroupName=B站充电视频下载器
-OutputDir=dist\installer
+OutputDir={#SourcePath}..\..\dist\installer
 OutputBaseFilename=BiliDownloader-Setup-{#AppVersion}-win-x64
 Compression=lzma2
 SolidCompression=yes
@@ -21,7 +21,7 @@ PrivilegesRequired=lowest
 WizardStyle=modern
 
 [Files]
-Source: "dist\BiliDownloader\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+Source: "{#SourcePath}..\..\dist\BiliDownloader\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Icons]
 Name: "{group}\B站充电视频下载器"; Filename: "{app}\BiliDownloader.exe"
