@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { App, Card, Input, Button, Table, Progress, Typography, Space, Tag, Grid, Image, Checkbox, Tooltip, Segmented } from 'antd'
-import { DownloadOutlined, SearchOutlined, LinkOutlined, FolderOpenOutlined, UnorderedListOutlined, FileTextOutlined, PictureOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons'
-import { parseApi, downloadApi } from '../api'
+import { App, Card, Input, Button, Table, Typography, Space, Tag, Grid, Image, Checkbox, Tooltip, Segmented } from 'antd'
+import { DownloadOutlined, SearchOutlined, LinkOutlined, FolderOpenOutlined, UnorderedListOutlined, FileTextOutlined, PictureOutlined } from '@ant-design/icons'
+import { parseApi, downloadApi, type DlTask } from '../api'
+import { TaskItem } from '../components/TaskDrawer'
 import InfoPanel from '../components/InfoPanel'
 import type { StatInfo } from '../components/InfoPanel'
 import DirBrowserModal from '../components/DirBrowserModal'
@@ -89,7 +90,10 @@ export default function DownloadPage() {
   const [downloading, setDownloading] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number; current: string; failed: any[]; status: string } | null>(null)
   const [taskId, setTaskId] = useState('')
+  const [starting, setStarting] = useState(false)          // 下载按钮瞬时loading(入队即复位, 不阻塞下一个)
+  const [tasks, setTasks] = useState<DlTask[]>([])          // 页内全部任务列表
   const pollRef = useRef<ReturnType<typeof setInterval>>()
+  const tasksPollRef = useRef<ReturnType<typeof setInterval>>()
 
   // 轮询进度: done=完成(含失败计数), paused=已暂停可继续
   const startPolling = (tid: string) => {
@@ -113,20 +117,20 @@ export default function DownloadPage() {
     }, 2000)
   }
 
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+  useEffect(() => () => {
+    if (pollRef.current) clearInterval(pollRef.current)
+    if (tasksPollRef.current) clearInterval(tasksPollRef.current)
+  }, [])
 
-  const handlePause = async () => {
-    const r = await downloadApi.pause(taskId)
-    if (!r.ok) message.error(r.error || '暂停失败')
-    // 状态由轮询拿到paused后收尾
+  // 页内任务列表: 轮询全部任务(合集名+集数进度), 多任务同时可见
+  const refreshTasks = async () => {
+    try { const r = await downloadApi.tasks(); if (r.ok) setTasks(r.data) } catch { /* 后端没起时静默 */ }
   }
-
-  const handleResume = async () => {
-    const r = await downloadApi.resume(taskId)
-    if (!r.ok) { message.error(r.error || '继续失败'); return }
-    setDownloading(true)
-    startPolling(taskId)
-  }
+  useEffect(() => {
+    refreshTasks()
+    tasksPollRef.current = setInterval(refreshTasks, 2500)
+    return () => { if (tasksPollRef.current) clearInterval(tasksPollRef.current) }
+  }, [])
 
   const updateSettings = (patch: Partial<DlSettings>) => {
     setSettings(prev => {
@@ -185,6 +189,7 @@ export default function DownloadPage() {
 
   const handleDownload = async () => {
     if (selected.length === 0) { message.warning('请至少选择一个视频'); return }
+    setStarting(true)
     setDownloading(true)
     setProgress({ done: 0, total: selected.length, current: '', failed: [], status: 'running' })
     try {
@@ -198,13 +203,16 @@ export default function DownloadPage() {
       if (!res.ok) { message.error(res.error); setDownloading(false); return }
       if (res.final_dir) message.success(`保存到: ${res.final_dir}`)
       if (res.existing) {
-        message.info('该目录已有未完成任务, 已合并续传 (在右上角「任务」面板可管理所有任务)')
+        message.info('该目录已有未完成任务, 已合并续传')
       } else if (res.resumed) {
         message.info(`检测到未完成任务, 自动续传: 跳过已完成 ${res.skipped} 个`)
       }
+      message.success('已加入下载队列, 下方「下载任务」实时显示进度; 可继续粘贴下一个链接排队下载')
       setTaskId(res.task_id)
       startPolling(res.task_id)
+      refreshTasks()
     } catch (e: any) { message.error('启动下载失败: ' + e.message); setDownloading(false) }
+    finally { setStarting(false) }
   }
 
   const columns = [
@@ -463,7 +471,7 @@ export default function DownloadPage() {
                   className="btn-glow"
                   icon={<DownloadOutlined />}
                   onClick={handleDownload}
-                  loading={downloading}
+                  loading={starting}
                   disabled={selected.length === 0}
                   block={isMobile}
                 >
@@ -472,38 +480,19 @@ export default function DownloadPage() {
               </div>
             </Card>
 
-            {/* 下载进度 */}
-            {progress && (
-              <Card className="glass-card anim-enter anim-delay-4" title="下载进度">
-                <Progress
-                  percent={Math.round(progress.done / progress.total * 100)}
-                  status={downloading ? 'active' : 'normal'}
-                  strokeColor={{ from: '#fbbf24', to: '#f97316' }}
-                />
-                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                  <Text>{progress.done}/{progress.total}</Text>
-                  {progress.current && progress.status === 'running' && <Tag color="processing" style={{ borderRadius: 999 }}>正在下载: {progress.current}</Tag>}
-                  {progress.status === 'queued' && <Tag style={{ borderRadius: 999 }}>排队中(并行槽位满, 可在「任务」面板调整并行数)</Tag>}
-                  {progress.status === 'paused' && <Tag color="warning" style={{ borderRadius: 999 }}>已暂停</Tag>}
-                  {progress.status === 'running' && (
-                    <Button size="small" icon={<PauseCircleOutlined />} onClick={handlePause} style={{ marginLeft: 'auto' }}>
-                      暂停下载
-                    </Button>
-                  )}
-                  {progress.status === 'paused' && (
-                    <Button size="small" type="primary" icon={<PlayCircleOutlined />} onClick={handleResume} style={{ marginLeft: 'auto' }}>
-                      继续下载
-                    </Button>
-                  )}
-                </div>
-                {progress.failed.length > 0 && (
-                  <div style={{ marginTop: 8 }}>
-                    <Text type="danger">失败 {progress.failed.length} 个:</Text>
-                    {progress.failed.map((f, i) => (
-                      <Tag key={i} color="error" style={{ borderRadius: 999 }}>{f.aid}: {f.error}</Tag>
-                    ))}
-                  </div>
-                )}
+            {/* 下载任务: 全部任务(合集名+集数进度), 多任务同时可见, 可排队多个 */}
+            {tasks.length > 0 && (
+              <Card
+                className="glass-card anim-enter anim-delay-4"
+                title={
+                  <Space>
+                    <UnorderedListOutlined style={{ color: 'var(--accent)' }} />
+                    <span>下载任务</span>
+                    <Tag color="orange" style={{ borderRadius: 999 }}>{tasks.length}</Tag>
+                  </Space>
+                }
+              >
+                {tasks.map(t => <TaskItem key={t.task_id} t={t} onAction={refreshTasks} />)}
               </Card>
             )}
           </div>

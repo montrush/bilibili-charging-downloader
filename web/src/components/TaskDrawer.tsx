@@ -15,7 +15,7 @@ const STATUS_META: Record<DlTask['status'], { label: string; color: string }> = 
   done: { label: '已完成', color: 'success' },
 }
 
-function TaskItem({ t, onAction }: { t: DlTask; onAction: () => void }) {
+export function TaskItem({ t, onAction }: { t: DlTask; onAction: () => void }) {
   const [busy, setBusy] = useState(false)
   const meta = STATUS_META[t.status]
   const percent = t.total ? Math.round((t.done / t.total) * 100) : 0
