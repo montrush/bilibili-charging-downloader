@@ -192,5 +192,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
-          files: artifacts/*
+          # upload-artifact多路径时保留dist/下相对结构(installer/子目录), glob不递归目录, 故需两行
+          files: |
+            artifacts/*
+            artifacts/installer/*.exe
           generate_release_notes: true
