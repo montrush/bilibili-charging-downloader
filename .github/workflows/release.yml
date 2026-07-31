@@ -61,6 +61,8 @@ jobs:
       - name: "冒烟: exe 启动检查"
         shell: pwsh
         run: |
+          # BILI_PORT 跳过启动时的交互选端口(隐藏窗口无人可输入)
+          $env:BILI_PORT = '8000'
           $p = Start-Process "dist\BiliDownloader\BiliDownloader.exe" -PassThru -WindowStyle Hidden `
                -RedirectStandardOutput smoke-out.txt -RedirectStandardError smoke-err.txt
           $ok = $false
@@ -142,6 +144,8 @@ jobs:
 
       - name: "冒烟: 二进制启动检查"
         run: |
+          # BILI_PORT 跳过启动时的交互选端口
+          export BILI_PORT=8000
           ./dist/bili-downloader/bili-downloader &
           PID=$!
           ok=0

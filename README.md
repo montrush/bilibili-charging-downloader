@@ -23,7 +23,7 @@
 ### 方式一：Windows 安装包（推荐，开箱即用）
 
 1. 到 [Releases](https://github.com/montrush/bilibili-charging-downloader/releases) 下载 `BiliDownloader-Setup-x.x.x.exe`
-2. 安装后从开始菜单启动，自动打开浏览器 http://127.0.0.1:8000
+2. 安装后从开始菜单启动，启动窗口会提示选择端口（默认 8000，直接回车即可；被占用时会提醒换一个），随后自动打开浏览器
 3. 无需安装 Python/Node/ffmpeg/BBDown，安装包已全部内置
 
 > 也有免安装便携版 `BiliDownloader-portable-win-x64.zip`，解压即用。
@@ -33,7 +33,7 @@
 ```bash
 # Debian / Ubuntu 系
 sudo dpkg -i bili-downloader_x.x.x_amd64.deb
-bili-downloader        # 启动后访问 http://127.0.0.1:8000
+bili-downloader        # 启动时会提示选端口(默认8000回车即可), 然后访问 http://127.0.0.1:8000
 ```
 
 其他发行版下载 `bili-downloader-linux-x64.tar.gz` 解压运行，或用下面的 Docker。
@@ -138,7 +138,7 @@ A: cookie没生效。检查：1)是否扫码登录成功；2)登录的账号是�
 A: 在挂载的 `/downloads` 目录（docker-compose.yml 里映射到 `./downloads`）。
 
 **Q: 端口8000被占用？**
-A: 设置环境变量 `BILI_PORT=8001` 再启动。
+A: Windows/Linux 安装版启动时会先让你选端口，8000 被占用会直接提醒，输入别的端口（如 8001）回车即可。也可以提前设环境变量 `BILI_PORT=8001` 跳过询问。Docker 则改端口映射 `-p 8001:8000`。
 
 **Q: 合集只下了1集？**
 A: 不会，本工具自动获取合集全部视频。粘贴单集链接默认「单集」模式，点「整个合集」展开。
