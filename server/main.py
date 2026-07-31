@@ -4,11 +4,12 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import login, parse, download, fs
+from .routers import login, parse, download, fs, update
+from .version import __version__
 
 PROJ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-app = FastAPI(title='B站充电视频下载器', version='1.0.0')
+app = FastAPI(title='B站充电视频下载器', version=__version__)
 
 # CORS(开发时前端单独跑)
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
@@ -18,6 +19,7 @@ app.include_router(login.router)
 app.include_router(parse.router)
 app.include_router(download.router)
 app.include_router(fs.router)
+app.include_router(update.router)
 
 
 @app.get('/api/health')

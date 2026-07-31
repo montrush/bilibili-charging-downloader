@@ -18,7 +18,10 @@ jobs:
 
       - name: 计算版本号
         shell: bash
-        run: echo "VER=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+        run: |
+          echo "VER=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+          # 版本号注入后端, 应用内"检查更新"以它为准
+          echo "__version__ = '${GITHUB_REF_NAME#v}'" > server/version.py
 
       - uses: actions/setup-node@v4
         with:
@@ -103,7 +106,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: 计算版本号
-        run: echo "VER=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+        run: |
+          echo "VER=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+          # 版本号注入后端, 应用内"检查更新"以它为准
+          echo "__version__ = '${GITHUB_REF_NAME#v}'" > server/version.py
 
       - uses: actions/setup-node@v4
         with:

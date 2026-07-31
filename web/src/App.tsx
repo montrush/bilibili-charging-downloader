@@ -4,6 +4,7 @@ import { loginApi } from './api'
 import LoginPage from './pages/LoginPage'
 import DownloadPage from './pages/DownloadPage'
 import SkinSwitcher from './components/SkinSwitcher'
+import UpdateButton from './components/UpdateButton'
 import Logo from './components/Logo'
 import RailgunDeco from './components/RailgunDeco'
 import AuthorFooter from './components/AuthorFooter'
@@ -59,7 +60,10 @@ export default function App() {
           <Logo size={34} />
           <span className="app-header-title gradient-text">B站充电视频下载器</span>
         </div>
-        <SkinSwitcher />
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <UpdateButton />
+          <SkinSwitcher />
+        </div>
       </header>
 
       {loggedIn === null ? (

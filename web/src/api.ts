@@ -31,3 +31,22 @@ export const fsApi = {
   browse: (path: string) => api.get('/fs/browse', { params: { path } }).then(r => r.data),
   default: () => api.get('/fs/default').then(r => r.data),
 }
+
+export interface UpdateInfo {
+  current: string
+  latest?: string
+  has_update?: boolean
+  notes?: string
+  page_url: string
+  mode: 'auto' | 'manual' | 'dev'
+  asset_name?: string
+  asset_size?: number
+  error?: string
+}
+
+export const updateApi = {
+  check: (force = false) => api.get('/update/check', { params: { force } }).then(r => r.data as UpdateInfo),
+  apply: () => api.post('/update/apply').then(r => r.data),
+  progress: () => api.get('/update/progress').then(r => r.data as { stage: string; percent: number; error: string; version: string }),
+  health: () => api.get('/health', { timeout: 3000 }).then(r => r.data),
+}
