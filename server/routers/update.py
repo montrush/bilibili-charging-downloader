@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
-"""应用内自更新: 多通道检查+下载, 国内无代理用户可用.
+"""应用内自更新: 国内无代理用户优先走 GitHub 加速镜像, 不依赖 Gitee.
 
-通道设计 (国内GitHub不稳定, 逐层降级, 每层快速失败自动换):
-- 版本检查: GitHub API -> Gitee API(国内直连) -> jsDelivr CDN(读仓库version.py)
-- 下载: 优先用检查成功的通道 -> GitHub直连 -> Gitee附件 -> 公共加速镜像(ghfast.top等)
+通道设计 (Gitee release 上传不稳, 改用 GitHub 国内加速源):
+- 版本检查: jsDelivr CDN(读仓库version.py, 国内直连) -> GitHub API 兜底
+- 下载: GitHub 加速镜像(ghfast.top/gh-proxy.com/ghproxy.net, 代理GH release) -> GitHub 直连
 - 用户可在界面填自定义代理(如 127.0.0.1:7890), 检查和下载都走它
 
 更新载荷:
-- Windows = Inno Setup.exe(76MB, 同时适配安装版/便携版: /DIR指定目标目录, /VERYSILENT静默),
-  不用portable zip(107MB超Gitee附件100MB上限)
-- Linux = tar.gz(Gitee放不下, 只有GitHub直连+镜像两条路)
+- Windows = Inno Setup.exe(76MB, /DIR指定目标目录 + /VERYSILENT静默, 安装版/便携版通用)
+- Linux = tar.gz(GitHub 直连 + 镜像)
 - Docker/deb = manual只提示; 源码 = dev禁用
 
 自替换流程: 后台下载 -> 生成PowerShell/sh脚本 -> 脚本等主进程退出 ->
@@ -33,13 +32,10 @@ from ..version import __version__
 router = APIRouter(prefix='/api/update', tags=['update'])
 
 GH_REPO = 'montrush/bilibili-charging-downloader'
-GITEE_REPO = 'houplus/bilibili-charging-downloader'
 GH_API = f'https://api.github.com/repos/{GH_REPO}/releases/latest'
-GITEE_API = f'https://gitee.com/api/v5/repos/{GITEE_REPO}/releases/latest'
 JSD_URL = f'https://cdn.jsdelivr.net/gh/{GH_REPO}@master/server/version.py'
 GH_PAGE = f'https://github.com/{GH_REPO}/releases/latest'
-GITEE_PAGE = f'https://gitee.com/{GITEE_REPO}/releases/latest'
-# 公共GitHub加速镜像(第三方, 可能失效, 轮询尝试; 前缀+完整github URL)
+# 公共GitHub加速镜像(第三方, 可能失效, 轮询尝试; 前缀+完整github URL). 国内直连主力.
 GH_MIRRORS = ['https://ghfast.top/', 'https://gh-proxy.com/', 'https://ghproxy.net/']
 
 _state = {
@@ -97,32 +93,31 @@ def _asset_pat() -> str:
     return r'Setup-.*\.exe$' if os.name == 'nt' else r'linux-x64\.tar\.gz$'
 
 
-def _norm_meta(channel: str, rel: dict) -> dict:
-    """GitHub/Gitee release JSON结构一致, 统一取字段."""
+def _norm_meta(rel: dict) -> dict:
+    """GitHub release JSON 取字段."""
     latest = (rel.get('tag_name') or '').lstrip('v')
     assets = [a for a in (rel.get('assets') or []) if re.search(_asset_pat(), a.get('name', ''), re.I)]
     a = assets[0] if assets else {}
     return {
-        'channel': channel,
+        'channel': 'github',
         'latest': latest,
         'notes': (rel.get('body') or '')[:4000],
-        'page_url': rel.get('html_url') or (GITEE_PAGE if channel == 'gitee' else GH_PAGE),
+        'page_url': rel.get('html_url') or GH_PAGE,
         'asset_name': a.get('name') or _asset_name(latest),
         'asset_url': a.get('browser_download_url'),
-        'asset_size': a.get('size') or 0,   # Gitee附件列表不带size, 下载时用Content-Length
+        'asset_size': a.get('size') or 0,
     }
 
 
-def _fetch_meta(channel: str, proxy: str) -> dict:
-    url = GH_API if channel == 'github' else GITEE_API
-    r = requests.get(url, timeout=10, proxies=_proxies(proxy),
+def _fetch_meta(proxy: str) -> dict:
+    r = requests.get(GH_API, timeout=10, proxies=_proxies(proxy),
                      headers={'Accept': 'application/vnd.github+json'})
     r.raise_for_status()
-    return _norm_meta(channel, r.json())
+    return _norm_meta(r.json())
 
 
 def _fetch_meta_jsd(proxy: str) -> dict:
-    """jsDelivr兜底: 读仓库version.py拿版本号, 无notes, 下载URL按规则构造."""
+    """jsDelivr优先通道: 读仓库version.py拿版本号(国内CDN直连), 无notes, 下载URL按规则构造."""
     r = requests.get(JSD_URL, timeout=10, proxies=_proxies(proxy))
     r.raise_for_status()
     m = re.search(r"__version__\s*=\s*'([\d.]+)'", r.text)
@@ -144,26 +139,19 @@ def _do_check(proxy: str = '', force: bool = False) -> dict:
     now = time.time()
     if not force and _state['cache'] and now - _state['checked_at'] < 600:
         return _state['cache']
-    # 上次成功的通道优先; 其余按 github -> gitee -> jsdelivr 补位
-    order = ['github', 'gitee']
-    if _state['meta_channel'] in order:
-        order.remove(_state['meta_channel'])
-        order.insert(0, _state['meta_channel'])
+    # jsDelivr(CDN读version.py, 国内直连)优先 -> GitHub API兜底; 不依赖Gitee
     meta = None
     errors = []
-    for ch in order:
+    for ch, fn in [('jsdelivr', lambda: _fetch_meta_jsd(proxy)),
+                   ('github', lambda: _fetch_meta(proxy))]:
         try:
-            meta = _fetch_meta(ch, proxy)
+            meta = fn()
             _state['meta_channel'] = ch
             break
         except Exception as e:
             errors.append(f'{ch}: {e}')
     if meta is None:
-        try:
-            meta = _fetch_meta_jsd(proxy)
-        except Exception as e:
-            errors.append(f'jsdelivr: {e}')
-            raise RuntimeError('所有更新通道都不通(' + '; '.join(errors) + ')')
+        raise RuntimeError('所有更新通道都不通(' + '; '.join(errors) + ')')
     cur = __version__.lstrip('v')
     res = {
         **meta,
@@ -181,7 +169,7 @@ def check(force: bool = False, proxy: str = ''):
     try:
         return _do_check(proxy, force)
     except Exception as e:
-        return {'error': str(e), 'current': __version__.lstrip('v'), 'mode': _mode(), 'page_url': GITEE_PAGE}
+        return {'error': str(e), 'current': __version__.lstrip('v'), 'mode': _mode(), 'page_url': GH_PAGE}
 
 
 @router.get('/progress')
@@ -221,14 +209,13 @@ def _apply_worker(proxy: str):
 
 
 def _download_candidates(info: dict) -> list:
-    """按可达性排序的下载URL候选: 检查通道URL -> GitHub -> Gitee -> 加速镜像."""
+    """下载URL候选: GitHub加速镜像(国内直连) -> GitHub直连; 不依赖Gitee(上传不稳常缺包)."""
     ver, name = info['latest'], info['asset_name']
     gh = f'https://github.com/{GH_REPO}/releases/download/v{ver}/{name}'
-    gt = f'https://gitee.com/{GITEE_REPO}/releases/download/v{ver}/{name}'
-    urls = []
+    urls = [m + gh for m in GH_MIRRORS]   # 国内加速镜像优先(代理GH release, GH有包即可下)
     if info.get('asset_url'):
-        urls.append(info['asset_url'])
-    urls += [gh, gt] + [m + gh for m in GH_MIRRORS]
+        urls.append(info['asset_url'])     # GitHub API带回的直链(与镜像去重)
+    urls.append(gh)                        # GitHub直连兜底
     seen, out = set(), []
     for u in urls:
         if u not in seen:
@@ -238,11 +225,9 @@ def _download_candidates(info: dict) -> list:
 
 
 def _channel_of(url: str) -> str:
-    if 'github.com' in url and not url.startswith(tuple(GH_MIRRORS)):
-        return 'GitHub'
-    if 'gitee.com' in url:
-        return 'Gitee(国内)'
-    return '加速镜像'
+    if url.startswith(tuple(GH_MIRRORS)):
+        return '加速镜像'
+    return 'GitHub'
 
 
 def _download_multi(info: dict, proxy: str) -> Path:

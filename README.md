@@ -2,7 +2,7 @@
 
 下载B站**充电专属视频完整版**，支持 **UGC合集批量下载**，带高颜值 **Web前端**（扫码登录 + 选集下载 + 7套皮肤），提供 **Windows安装包 / Linux安装包 / Docker**（Unraid兼容）三种使用方式。
 
-**免代理国内友好**：应用内一键自动更新（GitHub / Gitee / 加速镜像多通道自动切换），安装包也可从 [Gitee 发布页](https://gitee.com/houplus/bilibili-charging-downloader/releases) 直接下载。
+**免代理国内友好**：应用内一键自动更新（jsDelivr 检查版本 + GitHub 加速镜像下载，全程免代理），安装包见 [GitHub Releases](https://github.com/montrush/bilibili-charging-downloader/releases/latest)。
 
 > 解决 [BBDown](https://github.com/nilaoda/BBDown) 1.6.3 登录失效问题：B站改版后 `BBDown login` 假成功（SESSDATA 永远为空），本工具直接调用B站扫码登录 API，从 `Set-Cookie` 响应头提取 cookie，再用 BBDown 下载充电视频完整版。
 
@@ -16,7 +16,7 @@
 - ✅ **UGC合集批量下载**：自动获取合集全部视频，表格复选（默认全选），单集/整合集两种解析模式
 - ✅ **暂停/继续 + 断点续传**：下载中可随时暂停/继续；下载目录里的 `.bili_dl_task.json` 记录进度，断网、关闭应用后，相同链接+相同目录再次下载自动接着传
 - ✅ **并行任务队列**：可同时下载多个合集，标题栏「任务」面板集中管理（暂停/继续/删除）；并行任务数可调（1-5）；应用重启后未完成任务保留，可手动续接或勾选"启动后自动续接"
-- ✅ **应用内自动更新（免代理）**：标题栏「更新」按钮一键升级并自动重启。更新通道自动降级：GitHub → Gitee（国内）→ 加速镜像，无需代理；也可在弹窗里填自定义代理
+- ✅ **应用内自动更新（免代理）**：标题栏「更新」按钮一键升级并自动重启。版本检查走 jsDelivr CDN（国内直连），安装包从 GitHub 加速镜像（ghfast.top 等）下载，无需代理；也可在弹窗里填自定义代理
 - ✅ **高颜值Web前端**：7套皮肤（晨曦/蜜桃/常盘台/暮色/熔岩/电磁炮/曜蓝），玻璃拟态，手机端自适应
 - ✅ **目录设置**：可视化目录浏览器，按 `UP主/合集名` 自动建子目录（qBittorrent风格）
 - ✅ **实时进度**：状态窗口显示封面/UP主/统计数据/下载进度
@@ -29,11 +29,11 @@
 
 ### 方式一：Windows 安装包（推荐，开箱即用）
 
-1. 下载 `BiliDownloader-Setup-x.x.x-win-x64.exe`：[GitHub Releases](https://github.com/montrush/bilibili-charging-downloader/releases/latest) | [Gitee 发布页（国内快）](https://gitee.com/houplus/bilibili-charging-downloader/releases)
+1. 下载 `BiliDownloader-Setup-x.x.x-win-x64.exe`：[GitHub Releases](https://github.com/montrush/bilibili-charging-downloader/releases/latest)（国内直连慢时，可在下载链接前加 `https://ghfast.top/` 加速）
 2. 安装后从开始菜单启动，启动窗口会提示选择端口（默认 8000，直接回车即可；被占用时会提醒换一个），随后自动打开浏览器
 3. 无需安装 Python/Node/ffmpeg/BBDown，安装包已全部内置
 
-> 也有免安装便携版 `BiliDownloader-portable-x.x.x-win-x64.zip`，解压即用（仅 GitHub，文件超过 Gitee 100MB 附件上限）。
+> 也有免安装便携版 `BiliDownloader-portable-x.x.x-win-x64.zip`，解压即用（仅 GitHub Releases）。
 
 ### 方式二：Linux 安装包
 
@@ -90,8 +90,8 @@ docker run -d \
 更新通道（自动逐层降级，全部失败才提示手动）：
 
 ```
-版本检查: GitHub API → Gitee API → jsDelivr CDN
-下载包:   当前可用通道 → GitHub 直连 → Gitee 附件 → 加速镜像(ghfast.top / gh-proxy.com / ghproxy.net)
+版本检查: jsDelivr CDN(国内直连) → GitHub API
+下载包:   GitHub 加速镜像(ghfast.top / gh-proxy.com / ghproxy.net) → GitHub 直连
 ```
 
 下载完成有文件大小校验防镜像篡改。代理用户可在更新弹窗中填写代理地址（如 `127.0.0.1:7890`），检查和下载都会走它。
@@ -146,7 +146,7 @@ BBDown 1.6.3 不认合集 URL，本工具用 B站 API `ugc_season` 获取全部 
 ├── docker-compose.yml
 ├── run_windows.bat        # Windows原生运行(开发用)
 ├── unraid/                # Unraid部署模板
-├── .github/workflows/     # CI: Docker镜像(GHCR) + Release安装包 + Gitee同步
+├── .github/workflows/     # CI: Docker镜像(GHCR) + Release安装包 + Gitee代码镜像
 ├── bili_login.py          # 命令行版登录(独立使用)
 └── bili_download.py       # 命令行版下载(独立使用)
 ```
@@ -170,7 +170,7 @@ npm run dev    # http://localhost:5173 (代理到8000)
 A: cookie没生效。检查：1)是否扫码登录成功；2)登录的账号是否已给UP主充电；3)cookie是否过期（重新扫码）。
 
 **Q: 国内没有代理，怎么下载安装包 / 更新？**
-A: 安装包去 [Gitee 发布页](https://gitee.com/houplus/bilibili-charging-downloader/releases)（国内直连快）。应用内更新不用管——「更新」按钮会自动切到 Gitee 或加速镜像通道。
+A: 应用内「更新」按钮会自动从 GitHub 加速镜像（ghfast.top 等）下载，全程免代理。手动下载安装包：把 GitHub Releases 的下载链接贴到 `https://ghfast.top/` 前面即可国内直连。
 
 **Q: 下载到一半断网/手滑关了应用怎么办？**
 A: 什么都不用做。重新打开应用，粘贴相同链接、选相同目录再下载，会自动跳过已完成的集接着传（进度存在下载目录的 `.bili_dl_task.json` 里）。
