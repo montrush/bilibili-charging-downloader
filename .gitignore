@@ -1,5 +1,6 @@
 # 敏感文件 - 绝对不能提交(含登录态/cookie)
 bili_cookie.txt
+.env
 BBDown.data
 *.data
 config/
