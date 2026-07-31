@@ -4,6 +4,8 @@
 
 > 解决 [BBDown](https://github.com/nilaoda/BBDown) 1.6.3 登录失效问题：B站改版后 `BBDown login` 假成功（SESSDATA 永远为空），本工具直接调用B站扫码登录 API，从 `Set-Cookie` 响应头提取 cookie，再用 BBDown 下载充电视频完整版。
 
+> 🇨🇳 国内镜像（免代理）：[Gitee 仓库](https://gitee.com/houplus/bilibili-charging-downloader) | [Gitee 发布页](https://gitee.com/houplus/bilibili-charging-downloader/releases)。应用内「更新」按钮会自动选择可用通道（GitHub / Gitee / 加速镜像），无需代理。
+
 ![电磁炮皮肤](docs/screenshots/pc_railgun.png)
 
 ## 功能

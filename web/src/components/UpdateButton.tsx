@@ -1,23 +1,31 @@
 import { useEffect, useRef, useState } from 'react'
-import { Badge, Button, Modal, Progress, Spin, Tag, message } from 'antd'
+import { Badge, Button, Input, Modal, Progress, Spin, Tag, message } from 'antd'
 import { CloudDownloadOutlined, SyncOutlined } from '@ant-design/icons'
 import { updateApi, type UpdateInfo } from '../api'
 
 type Phase = 'idle' | 'checking' | 'updating' | 'restarting' | 'done'
+const LS_PROXY = 'bili-update-proxy'
 
 export default function UpdateButton() {
   const [info, setInfo] = useState<UpdateInfo | null>(null)
   const [open, setOpen] = useState(false)
   const [phase, setPhase] = useState<Phase>('idle')
   const [percent, setPercent] = useState(0)
+  const [channel, setChannel] = useState('')
   const [error, setError] = useState('')
+  const [proxy, setProxy] = useState(() => localStorage.getItem(LS_PROXY) || '')
   const pollRef = useRef<ReturnType<typeof setInterval>>()
 
   // 启动时静默检查一次, 有新版本在按钮上显示红点
   useEffect(() => {
-    updateApi.check().then(r => setInfo(r)).catch(() => {})
+    updateApi.check(false, localStorage.getItem(LS_PROXY) || '').then(r => setInfo(r)).catch(() => {})
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
+
+  const saveProxy = (v: string) => {
+    setProxy(v)
+    localStorage.setItem(LS_PROXY, v.trim())
+  }
 
   const openModal = async () => {
     setOpen(true)
@@ -25,7 +33,7 @@ export default function UpdateButton() {
     if (phase === 'updating' || phase === 'restarting') return
     setPhase('checking')
     try {
-      const r = await updateApi.check(true)
+      const r = await updateApi.check(true, proxy.trim())
       setInfo(r)
       if (r.error) setError(r.error)
     } catch (e: any) {
@@ -36,7 +44,7 @@ export default function UpdateButton() {
   }
 
   const startUpdate = async () => {
-    const r = await updateApi.apply()
+    const r = await updateApi.apply(proxy.trim())
     if (!r.ok) { setError(r.error || '无法启动更新'); return }
     setPhase('updating')
     setError('')
@@ -44,6 +52,7 @@ export default function UpdateButton() {
       try {
         const p = await updateApi.progress()
         setPercent(p.percent)
+        setChannel(p.channel || '')
         if (p.stage === 'error') {
           clearInterval(pollRef.current)
           setPhase('idle')
@@ -107,7 +116,21 @@ export default function UpdateButton() {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
               <span>当前版本 <Tag>v{info?.current || '…'}</Tag></span>
               {info?.latest && <span>最新版本 <Tag color={info.has_update ? 'green' : 'default'}>v{info.latest}</Tag></span>}
+              {info?.channel && !error && (
+                <span style={{ fontSize: 12, opacity: .65 }}>
+                  来源: {info.channel === 'gitee' ? 'Gitee(国内)' : info.channel === 'jsdelivr' ? 'CDN' : 'GitHub'}
+                </span>
+              )}
             </div>
+
+            <Input
+              size="small"
+              placeholder="连不上可填代理, 如 127.0.0.1:7890 (留空=直连)"
+              value={proxy}
+              onChange={e => saveProxy(e.target.value)}
+              style={{ marginBottom: 12, fontSize: 12 }}
+              disabled={updating}
+            />
 
             {error && <div style={{ color: 'var(--ant-colorError, #ff4d4f)', marginBottom: 12 }}>⚠ {error}</div>}
 
@@ -145,7 +168,7 @@ export default function UpdateButton() {
 
             {phase === 'updating' && (
               <div>
-                <div style={{ marginBottom: 8 }}>正在下载更新包…</div>
+                <div style={{ marginBottom: 8 }}>正在下载更新包{channel ? `（通道: ${channel}）` : ''}…</div>
                 <Progress percent={percent} status="active" />
               </div>
             )}

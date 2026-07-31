@@ -207,3 +207,54 @@ jobs:
             artifacts/*
             artifacts/installer/*.exe
           generate_release_notes: true
+
+  # ================= 同步Gitee(国内更新通道) =================
+  # 代码+tag推送到Gitee镜像仓, 创建同名Release并上传Windows安装包(76MB<100MB附件上限;
+  # 其余产物>100MB传不了, 国内Linux用户走加速镜像). token存repo secret GITEE_TOKEN
+  sync-gitee:
+    needs: publish-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows
+          path: artifacts
+
+      - name: 推送master+tag到Gitee
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          git config user.email "ci@github-actions"
+          git config user.name "github-actions"
+          URL="https://houplus:${GITEE_TOKEN}@gitee.com/houplus/bilibili-charging-downloader.git"
+          # +前缀=允许重跑时覆盖已存在ref
+          git push "$URL" "+master:master" "+${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}" 2>&1 | sed "s/${GITEE_TOKEN}/***/g"
+
+      - name: 创建Gitee Release并上传安装包
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          set -e
+          API="https://gitee.com/api/v5/repos/houplus/bilibili-charging-downloader"
+          EXE=$(ls artifacts/installer/*-Setup-*.exe | head -1)
+          echo "安装包: $EXE ($(du -m "$EXE" | cut -f1)MB)"
+          # tag已有Release(重跑场景)则复用其id
+          RID=$(curl -sf -X POST "$API/releases" \
+                -d "access_token=${GITEE_TOKEN}" \
+                -d "tag_name=${GITHUB_REF_NAME}" \
+                -d "name=${GITHUB_REF_NAME}" \
+                -d "body=自动同步自 GitHub Release ${GITHUB_REF_NAME} (完整4产物见GitHub)" \
+                -d "target_commitish=master" \
+                | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])" 2>/dev/null) \
+            || RID=$(curl -sf "$API/releases/tags/${GITHUB_REF_NAME}?access_token=${GITEE_TOKEN}" \
+                | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+          echo "Gitee release id: $RID"
+          curl -sf -X POST "$API/releases/$RID/attach_files" \
+            -F "access_token=${GITEE_TOKEN}" \
+            -F "file=@${EXE}" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print('Gitee附件已传:', d.get('name'), d.get('size'))"
+
