@@ -47,8 +47,28 @@ def start_download(req: DownloadRequest):
         except OSError as e:
             return {'ok': False, 'error': f'创建目录失败: {e}'}
 
-    task_id = task_manager.start_download(req.aids, final_dir)
-    return {'ok': True, 'task_id': task_id, 'final_dir': final_dir}
+    r = task_manager.start_download(req.aids, final_dir)
+    if r.get('all_done'):
+        return {'ok': True, 'all_done': True, 'skipped': r['skipped'], 'final_dir': final_dir,
+                'msg': f'所选 {r["skipped"]} 个视频此前已全部下载完成'}
+    return {'ok': True, 'task_id': r['task_id'], 'final_dir': final_dir,
+            'resumed': r['resumed'], 'skipped': r['skipped']}
+
+
+class TaskAction(BaseModel):
+    task_id: str
+
+
+@router.post('/pause')
+def pause_download(req: TaskAction):
+    """暂停任务: 打断当前视频下载, 进度写入目录里的续传状态文件."""
+    return task_manager.pause_download(req.task_id)
+
+
+@router.post('/resume')
+def resume_download(req: TaskAction):
+    """继续任务(仅本次运行内暂停的任务; 应用重启后直接重新发起下载即自动续传)."""
+    return task_manager.resume_download(req.task_id)
 
 
 @router.get('/progress')

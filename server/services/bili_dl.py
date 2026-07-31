@@ -372,8 +372,11 @@ def find_bbdown():
     return None
 
 
-def download_one(aid, download_dir, cookie=None):
-    """下载单个视频. 返回 (success, error_msg)."""
+def download_one(aid, download_dir, cookie=None, on_proc=None):
+    """下载单个视频. 返回 (success, error_msg).
+
+    on_proc: Popen创建后回调(任务管理器持有进程句柄, 暂停时kill).
+    """
     bbdown = find_bbdown()
     if not bbdown:
         return False, 'BBDown not found'
@@ -382,11 +385,19 @@ def download_one(aid, download_dir, cookie=None):
     if cookie:
         cmd += ['-c', cookie]
     try:
-        r = subprocess.run(cmd, cwd=PROJ, capture_output=True, text=True, timeout=600)
-        if r.returncode == 0:
+        proc = subprocess.Popen(cmd, cwd=PROJ, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if on_proc:
+            on_proc(proc)
+        # 超时放宽到1小时: 充电视频可能很长/断链慢速重试
+        rc = proc.wait(timeout=3600)
+        if rc == 0:
             return True, None
-        return False, f'exit={r.returncode}'
+        return False, f'exit={rc}'
     except subprocess.TimeoutExpired:
+        try:
+            proc.kill()
+        except Exception:
+            pass
         return False, 'timeout'
     except Exception as e:
         return False, str(e)

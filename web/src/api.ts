@@ -25,6 +25,8 @@ export const downloadApi = {
   start: (aids: string[], path: string, opts: DlOptions) =>
     api.post('/download', { aids, path, ...opts }).then(r => r.data),
   progress: (taskId: string) => api.get('/download/progress', { params: { task_id: taskId } }).then(r => r.data),
+  pause: (taskId: string) => api.post('/download/pause', { task_id: taskId }).then(r => r.data),
+  resume: (taskId: string) => api.post('/download/resume', { task_id: taskId }).then(r => r.data),
 }
 
 export const fsApi = {

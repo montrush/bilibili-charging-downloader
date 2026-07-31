@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { App, Card, Input, Button, Table, Progress, Typography, Space, Tag, Grid, Image, Checkbox, Tooltip, Segmented } from 'antd'
-import { DownloadOutlined, SearchOutlined, LinkOutlined, FolderOpenOutlined, UnorderedListOutlined, FileTextOutlined, PictureOutlined } from '@ant-design/icons'
+import { DownloadOutlined, SearchOutlined, LinkOutlined, FolderOpenOutlined, UnorderedListOutlined, FileTextOutlined, PictureOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons'
 import { parseApi, downloadApi } from '../api'
 import InfoPanel from '../components/InfoPanel'
 import type { StatInfo } from '../components/InfoPanel'
@@ -88,6 +88,45 @@ export default function DownloadPage() {
   const [dirModalOpen, setDirModalOpen] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number; current: string; failed: any[]; status: string } | null>(null)
+  const [taskId, setTaskId] = useState('')
+  const pollRef = useRef<ReturnType<typeof setInterval>>()
+
+  // 轮询进度: done=完成(含失败计数), paused=已暂停可继续
+  const startPolling = (tid: string) => {
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = setInterval(async () => {
+      try {
+        const p = await downloadApi.progress(tid)
+        if (!p.ok) return
+        setProgress(p.data)
+        if (p.data.status === 'done') {
+          clearInterval(pollRef.current)
+          setDownloading(false)
+          const ok = p.data.done - p.data.failed.length
+          message.success(`下载完成! ${ok}/${p.data.total}成功, ${p.data.failed.length}失败`)
+        } else if (p.data.status === 'paused') {
+          clearInterval(pollRef.current)
+          setDownloading(false)
+          message.info('已暂停, 点「继续下载」续传; 即使关掉应用, 下次相同链接+相同目录也会自动续传')
+        }
+      } catch { /* 网络抖动忽略, 下轮再试 */ }
+    }, 2000)
+  }
+
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+
+  const handlePause = async () => {
+    const r = await downloadApi.pause(taskId)
+    if (!r.ok) message.error(r.error || '暂停失败')
+    // 状态由轮询拿到paused后收尾
+  }
+
+  const handleResume = async () => {
+    const r = await downloadApi.resume(taskId)
+    if (!r.ok) { message.error(r.error || '继续失败'); return }
+    setDownloading(true)
+    startPolling(taskId)
+  }
 
   const updateSettings = (patch: Partial<DlSettings>) => {
     setSettings(prev => {
@@ -157,20 +196,16 @@ export default function DownloadPage() {
         collection_title: info?.is_collection ? (info.collection?.title || '') : '',
       })
       if (!res.ok) { message.error(res.error); setDownloading(false); return }
+      if (res.all_done) {
+        message.success(res.msg || '此前已全部下载完成')
+        setDownloading(false)
+        setProgress(null)
+        return
+      }
       if (res.final_dir) message.success(`保存到: ${res.final_dir}`)
-      const tid = res.task_id
-      const timer = setInterval(async () => {
-        const p = await downloadApi.progress(tid)
-        if (p.ok) {
-          setProgress(p.data)
-          if (p.data.status === 'done') {
-            clearInterval(timer)
-            setDownloading(false)
-            const ok = p.data.done - p.data.failed.length
-            message.success(`下载完成! ${ok}/${p.data.total}成功, ${p.data.failed.length}失败`)
-          }
-        }
-      }, 2000)
+      if (res.resumed) message.info(`检测到未完成任务, 自动续传: 跳过已完成 ${res.skipped} 个`)
+      setTaskId(res.task_id)
+      startPolling(res.task_id)
     } catch (e: any) { message.error('启动下载失败: ' + e.message); setDownloading(false) }
   }
 
@@ -447,9 +482,20 @@ export default function DownloadPage() {
                   status={downloading ? 'active' : 'normal'}
                   strokeColor={{ from: '#fbbf24', to: '#f97316' }}
                 />
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <Text>{progress.done}/{progress.total}</Text>
-                  {progress.current && <Tag color="processing" style={{ marginLeft: 8, borderRadius: 999 }}>正在下载: {progress.current}</Tag>}
+                  {progress.current && progress.status === 'running' && <Tag color="processing" style={{ borderRadius: 999 }}>正在下载: {progress.current}</Tag>}
+                  {progress.status === 'paused' && <Tag color="warning" style={{ borderRadius: 999 }}>已暂停</Tag>}
+                  {progress.status === 'running' && (
+                    <Button size="small" icon={<PauseCircleOutlined />} onClick={handlePause} style={{ marginLeft: 'auto' }}>
+                      暂停下载
+                    </Button>
+                  )}
+                  {progress.status === 'paused' && (
+                    <Button size="small" type="primary" icon={<PlayCircleOutlined />} onClick={handleResume} style={{ marginLeft: 'auto' }}>
+                      继续下载
+                    </Button>
+                  )}
                 </div>
                 {progress.failed.length > 0 && (
                   <div style={{ marginTop: 8 }}>
