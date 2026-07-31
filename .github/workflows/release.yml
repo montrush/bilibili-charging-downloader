@@ -251,17 +251,18 @@ jobs:
           EXE=$(ls artifacts/installer/*-Setup-*.exe | head -1)
           echo "安装包: $EXE ($(du -m "$EXE" | cut -f1)MB)"
           # tag已有Release(重跑场景)则复用其id
-          RID=$(curl -sf -X POST "$API/releases" \
+          RID=$(curl -sf --max-time 60 -X POST "$API/releases" \
                 -d "access_token=${GITEE_TOKEN}" \
                 -d "tag_name=${GITHUB_REF_NAME}" \
                 -d "name=${GITHUB_REF_NAME}" \
                 -d "body=自动同步自 GitHub Release ${GITHUB_REF_NAME} (完整4产物见GitHub)" \
                 -d "target_commitish=master" \
                 | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])" 2>/dev/null) \
-            || RID=$(curl -sf "$API/releases/tags/${GITHUB_REF_NAME}?access_token=${GITEE_TOKEN}" \
+            || RID=$(curl -sf --max-time 60 "$API/releases/tags/${GITHUB_REF_NAME}?access_token=${GITEE_TOKEN}" \
                 | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
           echo "Gitee release id: $RID"
-          curl -sf -X POST "$API/releases/$RID/attach_files" \
+          # GH runner(美国)->Gitee(国内)跨境上传可能极慢/卡死: max-time兜底+失败重试
+          curl -sf --max-time 900 --retry 2 --retry-all-errors -X POST "$API/releases/$RID/attach_files" \
             -F "access_token=${GITEE_TOKEN}" \
             -F "file=@${EXE}" \
             | python3 -c "import json,sys; d=json.load(sys.stdin); print('Gitee附件已传:', d.get('name'), d.get('size'))"
