@@ -228,11 +228,19 @@ jobs:
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
+          set -o pipefail
           git config user.email "ci@github-actions"
           git config user.name "github-actions"
           URL="https://houplus:${GITEE_TOKEN}@gitee.com/houplus/bilibili-charging-downloader.git"
-          # +前缀=允许重跑时覆盖已存在ref
-          git push "$URL" "+master:master" "+${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}" 2>&1 | sed "s/${GITEE_TOKEN}/***/g"
+          # 坑1: tag事件的checkout是detached HEAD, 本地没有master分支 -> 用origin/master
+          # 坑2: master不加+: 发版期间master若有新提交, Gitee已更新时非快进跳过, 不强推回滚
+          # 坑3: 管道会吞exit code, 必须pipefail; 但非快进/已存在属正常场景, 显式容忍
+          OUT=$(git push "$URL" "refs/remotes/origin/master:refs/heads/master" 2>&1) && echo "$OUT" | sed "s/${GITEE_TOKEN}/***/g" || {
+            echo "$OUT" | sed "s/${GITEE_TOKEN}/***/g"
+            echo "$OUT" | grep -qE "non-fast-forward|fetch first|up.to.date|rejected" \
+              && echo "⚠️ master非快进(Gitee侧已更新), 跳过不影响Release" || exit 1
+          }
+          git push "$URL" "+${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}" 2>&1 | sed "s/${GITEE_TOKEN}/***/g" || echo "⚠️ tag推送失败/已存在, Release不受影响"
 
       - name: 创建Gitee Release并上传安装包
         env:
