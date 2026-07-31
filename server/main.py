@@ -22,6 +22,13 @@ app.include_router(fs.router)
 app.include_router(update.router)
 
 
+@app.on_event('startup')
+def _startup():
+    # 加载任务注册表: 上次中断的任务转"已暂停"等待续接; 设置了自动续接则直接开跑
+    from . import task_manager
+    task_manager.init_on_startup()
+
+
 @app.get('/api/health')
 def health():
     return {'ok': True, 'msg': 'B站下载器后端运行中'}

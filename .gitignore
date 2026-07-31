@@ -73,3 +73,8 @@ vendor/
 dist/
 build/
 .venv-build/
+
+# 下载队列运行时状态(注册表/设置/目录级续传文件)
+download_tasks.json
+download_settings.json
+.bili_dl_task.json

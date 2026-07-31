@@ -194,16 +194,14 @@ export default function DownloadPage() {
         mkdir_collection: settings.mkdirCollection,
         up_name: info?.owner || '',
         collection_title: info?.is_collection ? (info.collection?.title || '') : '',
-      })
+      }, info?.is_collection ? (info.collection?.title || '') : (info?.title || ''))
       if (!res.ok) { message.error(res.error); setDownloading(false); return }
-      if (res.all_done) {
-        message.success(res.msg || '此前已全部下载完成')
-        setDownloading(false)
-        setProgress(null)
-        return
-      }
       if (res.final_dir) message.success(`保存到: ${res.final_dir}`)
-      if (res.resumed) message.info(`检测到未完成任务, 自动续传: 跳过已完成 ${res.skipped} 个`)
+      if (res.existing) {
+        message.info('该目录已有未完成任务, 已合并续传 (在右上角「任务」面板可管理所有任务)')
+      } else if (res.resumed) {
+        message.info(`检测到未完成任务, 自动续传: 跳过已完成 ${res.skipped} 个`)
+      }
       setTaskId(res.task_id)
       startPolling(res.task_id)
     } catch (e: any) { message.error('启动下载失败: ' + e.message); setDownloading(false) }
@@ -485,6 +483,7 @@ export default function DownloadPage() {
                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <Text>{progress.done}/{progress.total}</Text>
                   {progress.current && progress.status === 'running' && <Tag color="processing" style={{ borderRadius: 999 }}>正在下载: {progress.current}</Tag>}
+                  {progress.status === 'queued' && <Tag style={{ borderRadius: 999 }}>排队中(并行槽位满, 可在「任务」面板调整并行数)</Tag>}
                   {progress.status === 'paused' && <Tag color="warning" style={{ borderRadius: 999 }}>已暂停</Tag>}
                   {progress.status === 'running' && (
                     <Button size="small" icon={<PauseCircleOutlined />} onClick={handlePause} style={{ marginLeft: 'auto' }}>

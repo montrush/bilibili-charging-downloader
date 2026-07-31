@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""下载API: 选集+路径+目录规则+进度."""
+"""下载API: 并行任务队列 + 选集路径 + 进度 + 设置."""
 import os, re
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -18,6 +18,7 @@ def sanitize_dir_name(name: str) -> str:
 class DownloadRequest(BaseModel):
     aids: list[str]
     path: str
+    title: str = ''              # 任务显示名(合集名/视频名)
     # 目录规则 (参考qBittorrent)
     auto_mkdir: bool = True        # 目录不存在时自动创建
     mkdir_up: bool = False         # 按UP主名字建子目录
@@ -28,7 +29,7 @@ class DownloadRequest(BaseModel):
 
 @router.post('')
 def start_download(req: DownloadRequest):
-    """启动下载任务. 返回task_id + 实际下载目录."""
+    """启动下载任务(进并行队列). 同目录已有未完成任务时合并续传."""
     if not req.aids:
         return {'ok': False, 'error': '请至少选择一个视频'}
 
@@ -47,12 +48,9 @@ def start_download(req: DownloadRequest):
         except OSError as e:
             return {'ok': False, 'error': f'创建目录失败: {e}'}
 
-    r = task_manager.start_download(req.aids, final_dir)
-    if r.get('all_done'):
-        return {'ok': True, 'all_done': True, 'skipped': r['skipped'], 'final_dir': final_dir,
-                'msg': f'所选 {r["skipped"]} 个视频此前已全部下载完成'}
-    return {'ok': True, 'task_id': r['task_id'], 'final_dir': final_dir,
-            'resumed': r['resumed'], 'skipped': r['skipped']}
+    title = req.title or req.collection_title
+    r = task_manager.start_download(req.aids, final_dir, title=title)
+    return {'ok': True, 'final_dir': final_dir, **r}
 
 
 class TaskAction(BaseModel):
@@ -61,20 +59,51 @@ class TaskAction(BaseModel):
 
 @router.post('/pause')
 def pause_download(req: TaskAction):
-    """暂停任务: 打断当前视频下载, 进度写入目录里的续传状态文件."""
+    """暂停任务: 打断当前视频下载, 进度持久化(注册表+目录状态文件)."""
     return task_manager.pause_download(req.task_id)
 
 
 @router.post('/resume')
 def resume_download(req: TaskAction):
-    """继续任务(仅本次运行内暂停的任务; 应用重启后直接重新发起下载即自动续传)."""
+    """继续任务: 重新进入并行队列, 有槽位即开跑."""
     return task_manager.resume_download(req.task_id)
+
+
+@router.post('/delete')
+def delete_task(req: TaskAction):
+    """删除任务记录(运行中先停). 不删已下载的视频文件."""
+    return task_manager.delete_task(req.task_id)
 
 
 @router.get('/progress')
 def progress(task_id: str):
-    """查下载进度(前端轮询)."""
+    """查单个任务进度(前端轮询)."""
     p = task_manager.get_progress(task_id)
     if not p:
         return {'ok': False, 'error': '任务不存在'}
     return {'ok': True, 'data': p}
+
+
+@router.get('/tasks')
+def list_tasks():
+    """全部任务列表(任务面板用)."""
+    return {'ok': True, 'data': task_manager.list_tasks()}
+
+
+@router.get('/settings')
+def get_settings():
+    """队列设置: max_parallel(并行任务数) / auto_resume(启动自动续接)."""
+    return {'ok': True, 'data': task_manager.get_settings()}
+
+
+class SettingsPatch(BaseModel):
+    max_parallel: int | None = None
+    auto_resume: bool | None = None
+
+
+@router.put('/settings')
+def put_settings(req: SettingsPatch):
+    patch = {k: v for k, v in req.model_dump().items() if v is not None}
+    if not patch:
+        return {'ok': False, 'error': '没有要修改的设置'}
+    return task_manager.update_settings(patch)
