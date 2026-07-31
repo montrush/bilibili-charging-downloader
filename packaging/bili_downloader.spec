@@ -4,9 +4,15 @@
 前置: web/dist 已构建; vendor/ 下有 BBDown(.exe) 和 ffmpeg(.exe).
 """
 import os
+import sys
 from PyInstaller.utils.hooks import collect_submodules
 
 ROOT = os.path.abspath(os.getcwd())
+# collect_submodules需要能import到server包; 直接用pyinstaller命令时cwd不在sys.path
+# (python -m PyInstaller才有), 这里显式插入保证两种调用方式都行
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
 IS_WIN = os.name == 'nt'
 BIN_NAME = os.environ.get('APP_BIN_NAME', 'BiliDownloader' if IS_WIN else 'bili-downloader')
 
