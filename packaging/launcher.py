@@ -8,6 +8,13 @@ import threading
 import webbrowser
 from pathlib import Path
 
+# GitHub runner等英文Windows控制台是cp1252, 中文print会UnicodeEncodeError崩进程
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except Exception:
+    pass
+
 
 def _base() -> Path:
     # PyInstaller onedir: 资源在 exe 同级 _internal (6.x) 或 _MEIPASS
