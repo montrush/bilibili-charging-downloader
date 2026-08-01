@@ -208,6 +208,22 @@ jobs:
             artifacts/installer/*.exe
           generate_release_notes: true
 
+  # ================= 刷新 jsDelivr CDN(应用内更新检查读它) =================
+  # version.py 在 CDN 边缘有长 TTL(7天), 发版后主动 purge 让国内用户尽快看到新版本.
+  # 注意: purge 偶发不彻底(边缘TTL未失效), 应用内检查另对"无更新"结果用 GitHub API
+  # 复核兜底(update.py _do_check), 双保险 —— 此步骤失败绝不阻塞 Release.
+  purge-jsdelivr:
+    needs: publish-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Purge jsDelivr version.py 缓存
+        run: |
+          set +e
+          curl -fsSL --max-time 30 "https://purge.jsdelivr.net/gh/montrush/bilibili-charging-downloader@master/server/version.py"
+          code=$?
+          if [ $code -eq 0 ]; then echo "purge 请求已发送"; \
+          else echo "⚠️ purge 失败(code=$code), 不影响Release(应用内检查有 GitHub 复核兜底)"; fi
+
   # ================= 同步Gitee(国内代码镜像) =================
   # 只推送代码+tag作国内镜像, 供人浏览/clone. 应用内更新已改走 GitHub 加速镜像,
   # 不再创建Gitee Release/上传安装包(跨境上传76MB不稳, 更新流程也用不上).

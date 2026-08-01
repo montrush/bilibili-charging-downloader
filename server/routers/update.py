@@ -109,8 +109,8 @@ def _norm_meta(rel: dict) -> dict:
     }
 
 
-def _fetch_meta(proxy: str) -> dict:
-    r = requests.get(GH_API, timeout=10, proxies=_proxies(proxy),
+def _fetch_meta(proxy: str, timeout: int = 10) -> dict:
+    r = requests.get(GH_API, timeout=timeout, proxies=_proxies(proxy),
                      headers={'Accept': 'application/vnd.github+json'})
     r.raise_for_status()
     return _norm_meta(r.json())
@@ -139,20 +139,41 @@ def _do_check(proxy: str = '', force: bool = False) -> dict:
     now = time.time()
     if not force and _state['cache'] and now - _state['checked_at'] < 600:
         return _state['cache']
-    # jsDelivr(CDN读version.py, 国内直连)优先 -> GitHub API兜底; 不依赖Gitee
-    meta = None
+    cur = __version__.lstrip('v')
     errors = []
-    for ch, fn in [('jsdelivr', lambda: _fetch_meta_jsd(proxy)),
-                   ('github', lambda: _fetch_meta(proxy))]:
+    meta = None
+
+    # 1) jsDelivr 优先(国内CDN直连, 快)
+    try:
+        meta = _fetch_meta_jsd(proxy)
+        _state['meta_channel'] = 'jsdelivr'
+    except Exception as e:
+        errors.append(f'jsdelivr: {e}')
+
+    # 2) jsDelivr 的 @master 单文件可能被 CDN 边缘缓存数小时(7天TTL, purge 偶发不彻底).
+    #    当它判"无更新"时, 用 GitHub releases/latest(始终最新)复核: 防止边缘旧缓存把
+    #    真实更新藏起来. 只在"无更新"路径复核 —— jsDelivr 不会无中生有把版本变高,
+    #    它说"有更新"时直接信任走快路径. 复核用短超时, 失败则信任 jsDelivr, 不拖慢检查.
+    if meta is not None and _parse_ver(meta['latest']) <= _parse_ver(cur):
         try:
-            meta = fn()
-            _state['meta_channel'] = ch
-            break
+            gh = _fetch_meta(proxy, timeout=4)
+            if _parse_ver(gh['latest']) > _parse_ver(meta['latest']):
+                meta = gh
+                _state['meta_channel'] = 'github'
         except Exception as e:
-            errors.append(f'{ch}: {e}')
+            errors.append(f'github-confirm: {e}')
+
+    # 3) jsDelivr 整体不通 -> GitHub 兜底
+    if meta is None:
+        try:
+            meta = _fetch_meta(proxy)
+            _state['meta_channel'] = 'github'
+        except Exception as e:
+            errors.append(f'github: {e}')
+
     if meta is None:
         raise RuntimeError('所有更新通道都不通(' + '; '.join(errors) + ')')
-    cur = __version__.lstrip('v')
+
     res = {
         **meta,
         'current': cur,
