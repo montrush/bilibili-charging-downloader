@@ -6,6 +6,7 @@
 - 短链/微信分享: https://b23.tv/xxx (自动302解析)
 - 合集:
   - https://space.bilibili.com/{mid}/channel/collectiondetail?sid={sid}
+  - https://space.bilibili.com/{mid}/lists/{id}?type=series|season  (新版空间合集/列表页, 老合集无固定合集链接时即此格式)
   - https://www.bilibili.com/video/BVxxx/?...&sid={sid}
 - 文章: https://www.bilibili.com/read/cv{id}
 - 图片/动态: https://t.bilibili.com/{id}, https://h.bilibili.com/{id}, https://www.bilibili.com/opus/{id}
@@ -42,7 +43,9 @@ def detect_link_type(url):
         return 'article'
     if re.search(r'/(t|h|opus)/\d+', lo) or re.search(r'\b[th]\.bilibili\.com\b', lo):
         return 'image'
-    if re.search(r'/channel/collectiondetail', lo) or re.search(r'[?&]sid=\d+', lo):
+    if (re.search(r'/channel/collectiondetail', lo)
+            or re.search(r'[?&]sid=\d+', lo)
+            or re.search(r'space\.bilibili\.com/\d+/lists/\d+', lo)):
         return 'collection'
     if re.search(r'/video/(av\d+|bv\w+)', lo):
         return 'video'
@@ -61,6 +64,11 @@ def extract_aid(url):
 
 def extract_sid(url):
     m = re.search(r'[?&]sid=(\d+)', url)
+    if m:
+        return m.group(1)
+    # 新版空间合集/列表页: space.bilibili.com/{mid}/lists/{id}?type=series|season
+    # {id} 即 season_id, 复用 seasons_archives_list 接口
+    m = re.search(r'space\.bilibili\.com/\d+/lists/(\d+)', url)
     return m.group(1) if m else None
 
 
