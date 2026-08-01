@@ -6,7 +6,7 @@
 - 短链/微信分享: https://b23.tv/xxx (自动302解析)
 - 合集:
   - https://space.bilibili.com/{mid}/channel/collectiondetail?sid={sid}
-  - https://space.bilibili.com/{mid}/lists/{id}?type=series|season  (新版空间合集/列表页, 老合集无固定合集链接时即此格式)
+  - https://space.bilibili.com/{mid}/lists/{id}?type=series|season  (新版空间合集/列表页; type=series=视频列表走 /x/series, type=season=合集走 season API)
   - https://www.bilibili.com/video/BVxxx/?...&sid={sid}
 - 文章: https://www.bilibili.com/read/cv{id}
 - 图片/动态: https://t.bilibili.com/{id}, https://h.bilibili.com/{id}, https://www.bilibili.com/opus/{id}
@@ -67,9 +67,16 @@ def extract_sid(url):
     if m:
         return m.group(1)
     # 新版空间合集/列表页: space.bilibili.com/{mid}/lists/{id}?type=series|season
-    # {id} 即 season_id, 复用 seasons_archives_list 接口
+    # ⚠️ type=series 时 {id} 是 series_id(视频列表), type=season 时是 season_id(合集).
+    # 两种 id 都是纯数字且可能撞号, 必须按 type 选 API, 否则会查到别人的合集(假阳性).
     m = re.search(r'space\.bilibili\.com/\d+/lists/(\d+)', url)
     return m.group(1) if m else None
+
+
+def extract_list_type(url):
+    """新版 lists 页 ?type= 参数: series(视频列表) / season(合集). 无则 None."""
+    m = re.search(r'[?&]type=(series|season)\b', url, re.I)
+    return m.group(1).lower() if m else None
 
 
 def extract_mid(url):
@@ -221,6 +228,59 @@ def fetch_collection_by_sid(sid, mid=None, cookie=None):
     return {'archives': archives, 'meta': meta}
 
 
+def fetch_series_by_id(series_id, mid=None, cookie=None):
+    """通过 视频列表(series) series_id 获取视频列表+元数据. 返回 {'archives':[...], 'meta':{}}.
+
+    对应新版空间页 space.bilibili.com/{mid}/lists/{id}?type=series (老"视频列表").
+    接口为旧的 /x/series/* (polymer/web-space 的 series 接口已下线返回HTML).
+    """
+    import requests
+    headers = dict(HEADERS)
+    if cookie:
+        headers['Cookie'] = cookie
+    if mid:
+        headers['Referer'] = f'https://space.bilibili.com/{mid}/lists/{series_id}?type=series'
+
+    meta = {}
+    try:
+        r = requests.get('https://api.bilibili.com/x/series/series',
+                         params={'series_id': series_id}, headers=headers, timeout=15)
+        meta = r.json().get('data', {}).get('meta', {}) or {}
+    except Exception:
+        pass
+    if not mid:
+        mid = meta.get('mid')
+    if not mid:
+        return None
+
+    archives = []
+    pn = 1
+    while True:
+        r = requests.get('https://api.bilibili.com/x/series/archives',
+                         params={'mid': mid, 'series_id': series_id, 'pn': pn, 'ps': 30},
+                         headers=headers, timeout=15)
+        d = r.json()
+        if d.get('code') != 0:
+            break
+        items = d.get('data', {}).get('archives', [])
+        if not items:
+            break
+        for item in items:
+            pubdate = item.get('pubdate', 0)
+            archives.append({
+                'aid': str(item['aid']),
+                'bvid': item.get('bvid', ''),
+                'title': item.get('title', ''),
+                'date': datetime.datetime.fromtimestamp(pubdate).strftime('%Y-%m-%d') if pubdate else '',
+                'duration': item.get('duration', 0),
+            })
+        if len(items) < 30:
+            break
+        pn += 1
+
+    return {'archives': archives, 'meta': meta}
+
+
 def fetch_article_info(cv_id):
     """获取专栏文章信息."""
     import requests
@@ -319,11 +379,20 @@ def parse_link(url, cookie=None):
         aid = bvid_to_aid(bvid)
 
     if sid:
-        coll = fetch_collection_by_sid(sid, mid=mid, cookie=cookie)
+        # /lists/{id}?type=series => 视频列表(series_id); 其余 => 合集(season_id)
+        # ⚠️ series_id 与 season_id 都是纯数字可能撞号, 必须按 type 选 API.
+        is_series = (extract_list_type(resolved) == 'series'
+                     and re.search(r'space\.bilibili\.com/\d+/lists/\d+', resolved))
+        if is_series:
+            coll = fetch_series_by_id(sid, mid=mid, cookie=cookie)
+            kind_label = '视频列表'
+        else:
+            coll = fetch_collection_by_sid(sid, mid=mid, cookie=cookie)
+            kind_label = '空间合集'
         if coll and coll.get('archives'):
             episodes = coll['archives']
             meta = coll.get('meta') or {}
-            coll_title = meta.get('name') or f'合集 #{sid}'
+            coll_title = meta.get('name') or f'{kind_label} #{sid}'
             result.update({
                 'aid': '',
                 'bvid': bvid or '',
@@ -341,7 +410,7 @@ def parse_link(url, cookie=None):
                     'ep_count': meta.get('total', len(episodes)),
                     'stat': {},
                 },
-                'message': f'识别为空间合集，共 {len(episodes)} 个视频',
+                'message': f'识别为{kind_label}，共 {len(episodes)} 个视频',
             })
             return result
         # sid 匹配但拿不到合集, 可能是过期/无效 sid, 降级为普通视频
