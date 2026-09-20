@@ -2,7 +2,7 @@
 """应用内自更新: 国内无代理用户优先走 GitHub 加速镜像, 不依赖 Gitee.
 
 通道设计 (Gitee release 上传不稳, 改用 GitHub 国内加速源):
-- 版本检查: jsDelivr CDN(读仓库version.py, 国内直连) -> GitHub API 兜底
+- 版本检查: GitHub releases/latest(真值, api.github.com 动态端点不被CDN长缓存) -> jsDelivr 兜底(仅GitHub不通时降级, 可能滞后但保底)
 - 下载: GitHub 加速镜像(ghfast.top/gh-proxy.com/ghproxy.net, 代理GH release) -> GitHub 直连
 - 用户可在界面填自定义代理(如 127.0.0.1:7890), 检查和下载都走它
 
@@ -143,33 +143,23 @@ def _do_check(proxy: str = '', force: bool = False) -> dict:
     errors = []
     meta = None
 
-    # 1) jsDelivr 优先(国内CDN直连, 快)
+    # 1) GitHub releases/latest 为主真值源: api.github.com 是动态端点, 不会被 CDN 长缓存,
+    #    发版即生效; 且带回 assets 直链/size/notes. 不再让 jsDelivr 的 version.py 裁决版本 ——
+    #    那个 @master 单文件曾被边缘缓存 7 天(1.0.8 漏报根因), purge 偶发不彻底.
     try:
-        meta = _fetch_meta_jsd(proxy)
-        _state['meta_channel'] = 'jsdelivr'
+        meta = _fetch_meta(proxy)
+        _state['meta_channel'] = 'github'
     except Exception as e:
-        errors.append(f'jsdelivr: {e}')
+        errors.append(f'github: {e}')
 
-    # 2) jsDelivr 的 @master 单文件可能被 CDN 边缘缓存数小时(7天TTL, purge 偶发不彻底).
-    #    当它判"无更新"时, 用 GitHub releases/latest(始终最新)复核: 防止边缘旧缓存把
-    #    真实更新藏起来. 只在"无更新"路径复核 —— jsDelivr 不会无中生有把版本变高,
-    #    它说"有更新"时直接信任走快路径. 复核用短超时, 失败则信任 jsDelivr, 不拖慢检查.
-    if meta is not None and _parse_ver(meta['latest']) <= _parse_ver(cur):
-        try:
-            gh = _fetch_meta(proxy, timeout=4)
-            if _parse_ver(gh['latest']) > _parse_ver(meta['latest']):
-                meta = gh
-                _state['meta_channel'] = 'github'
-        except Exception as e:
-            errors.append(f'github-confirm: {e}')
-
-    # 3) jsDelivr 整体不通 -> GitHub 兜底
+    # 2) GitHub 不通(国内无代理偶发慢/超时) -> jsDelivr 兜底读 version.py. 它可能滞后数小时,
+    #    但仅作降级保底, 下次 GitHub 通了即纠正; 保证至少能拿到一个版本号不至完全无响应.
     if meta is None:
         try:
-            meta = _fetch_meta(proxy)
-            _state['meta_channel'] = 'github'
+            meta = _fetch_meta_jsd(proxy)
+            _state['meta_channel'] = 'jsdelivr'
         except Exception as e:
-            errors.append(f'github: {e}')
+            errors.append(f'jsdelivr: {e}')
 
     if meta is None:
         raise RuntimeError('所有更新通道都不通(' + '; '.join(errors) + ')')
