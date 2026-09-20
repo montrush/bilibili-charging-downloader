@@ -14,6 +14,17 @@ app = FastAPI(title='B站充电视频下载器', version=__version__)
 # CORS(开发时前端单独跑)
 app.add_middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])
 
+
+# ⭐v1.0.12(0920): index.html 禁缓存 — 应用更新后浏览器沿用旧页面(启发式缓存无过期头)导致
+# "装了新版还是旧UI"(1.0.11实测: 安装包正确, 缓存旧JS). 哈希资源文件不受影响仍可长缓存.
+@app.middleware('http')
+async def _no_cache_html(request, call_next):
+    resp = await call_next(request)
+    ct = resp.headers.get('content-type', '')
+    if 'text/html' in ct:
+        resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
 # API路由
 app.include_router(login.router)
 app.include_router(parse.router)
