@@ -11,6 +11,7 @@ export const loginApi = {
 export const parseApi = {
   parse: (url: string) => api.post('/parse', { url }).then(r => r.data),
   parseCollection: (url: string) => api.post('/parse/collection', { url }).then(r => r.data),
+  parseSpace: (url: string) => api.post('/parse/space', { url }).then(r => r.data),
 }
 
 export interface DlOptions {

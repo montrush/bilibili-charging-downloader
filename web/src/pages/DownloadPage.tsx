@@ -11,7 +11,7 @@ const { Title, Text } = Typography
 
 interface Episode { aid: string; title: string; date: string; duration: number; bvid?: string }
 interface VideoInfo {
-  link_type: 'video' | 'collection' | 'article' | 'image' | 'unknown'
+  link_type: 'video' | 'collection' | 'space' | 'article' | 'image' | 'unknown'
   aid?: string
   title?: string
   is_collection?: boolean
@@ -19,6 +19,8 @@ interface VideoInfo {
     title: string; episodes: Episode[]
     cover?: string; intro?: string; ep_count?: number; stat?: StatInfo
   } | null
+  videos?: Episode[]          // UP主投稿(space模式)的全部视频
+  total?: number
   article_info?: any
   image_info?: any
   message?: string
@@ -61,10 +63,15 @@ function loadSettings(): DlSettings {
 const sanitizeDirName = (s: string) => s.replace(/[\\/:*?"<>|\r\n]+/g, '_').trim().replace(/\.+$/, '').slice(0, 80)
 
 // 解析模式: 单集 / 整个合集 (开关式切换, 选择持久化)
-type ParseMode = 'single' | 'collection'
+type ParseMode = 'single' | 'collection' | 'space'
 const LS_PARSE_MODE = 'bili-parse-mode'
-const loadParseMode = (): ParseMode =>
-  localStorage.getItem(LS_PARSE_MODE) === 'collection' ? 'collection' : 'single'
+const loadParseMode = (): ParseMode => {
+  const v = localStorage.getItem(LS_PARSE_MODE)
+  return v === 'collection' || v === 'space' ? v : 'single'
+}
+// UP主空间链接识别: space.bilibili.com/{mid} 或 /upload/video (排除 /lists/ /channel/ 等合集/列表页)
+const isSpaceUploadUrl = (u: string) =>
+  /^https?:\/\/space\.bilibili\.com\/\d+\/?($|\?|\/upload\/?($|\?|\/video))/.test(u.trim())
 
 // 分集表格每页条数 (持久化)
 const LS_PAGE_SIZE = 'bili-page-size'
@@ -143,6 +150,11 @@ export default function DownloadPage() {
   // 解析结果应用: 合集模式=默认全选; 单集模式=只选当前这一集
   const applyInfo = (data: VideoInfo, mode: ParseMode = parseMode) => {
     setInfo(data)
+    if (data.link_type === 'space' && data.videos) {
+      // UP主投稿: 默认全选, 可自行取消勾选 (v1.0.11用户令)
+      setSelected(data.videos.map((e: Episode) => e.aid))
+      return
+    }
     if (mode === 'collection' && (data.link_type === 'video' || data.link_type === 'collection') && data.is_collection && data.collection) {
       setSelected(data.collection.episodes.map((e: Episode) => e.aid))
     } else if (data.aid) {
@@ -165,6 +177,19 @@ export default function DownloadPage() {
     if (!url.trim()) { message.warning('请输入B站链接'); return }
     setParsing(true); setInfo(null); setProgress(null); setSelected([])
     try {
+      // UP主空间链接自动走投稿解析(与模式开关解耦, 粘贴即识别)
+      if (isSpaceUploadUrl(url.trim())) {
+        const res = await parseApi.parseSpace(url.trim())
+        if (!res.ok) { message.error(res.error); return }
+        setParseMode('space'); localStorage.setItem(LS_PARSE_MODE, 'space')
+        applyInfo(res.data, 'space')
+        message.success(`已展开UP主「${res.data.owner}」投稿, 共 ${res.data.total} 个视频, 默认全选`)
+        return
+      }
+      if (parseMode === 'space') {
+        message.warning('UP主投稿模式需要空间链接(形如 https://space.bilibili.com/数字ID/upload/video), 或切回单集/合集模式')
+        return
+      }
       const res = await parseApi.parse(url.trim())
       if (!res.ok) { message.error(res.error); return }
       applyInfo(res.data)
@@ -222,10 +247,13 @@ export default function DownloadPage() {
     { title: '时长', key: 'duration', width: 80, render: (r: Episode) => r.duration ? `${Math.round(r.duration / 60)}分钟` : '-' },
   ]
 
-  const isVideoType = info && (info.link_type === 'video' || info.link_type === 'collection')
+  const isVideoType = info && (info.link_type === 'video' || info.link_type === 'collection' || info.link_type === 'space')
   // 单集模式: 即使视频属于合集, 列表也只显示当前这一集 (从合集里捞它的时长/日期)
   const episodes: Episode[] = (() => {
     if (!info) return []
+    if (info.link_type === 'space' && info.videos) {
+      return info.videos
+    }
     if (parseMode === 'collection' && info.is_collection && info.collection) {
       return info.collection.episodes
     }
@@ -300,7 +328,7 @@ export default function DownloadPage() {
       <div className="hero anim-enter">
         <span className="hero-badge">充电专属 · 完整版下载</span>
         <h1 className="hero-title gradient-text" style={{ fontSize: isMobile ? 30 : 40 }}>B站视频下载器</h1>
-        <p className="hero-subtitle">粘贴链接, 解析合集, 勾选下载 — 支持 短链 / BV号 / 合集 / 专栏 / 动态</p>
+        <p className="hero-subtitle">粘贴链接, 解析合集/UP主投稿, 勾选下载 — 支持 短链 / BV号 / 合集 / UP主空间 / 专栏 / 动态</p>
       </div>
 
       {/* 链接输入 */}
@@ -345,6 +373,7 @@ export default function DownloadPage() {
             options={[
               { label: '单集', value: 'single' },
               { label: '整个合集', value: 'collection' },
+              { label: 'UP主投稿', value: 'space' },
             ]}
           />
           {info?.is_collection && parseMode === 'single' && (
@@ -379,8 +408,8 @@ export default function DownloadPage() {
               title={
                 <Space>
                   <UnorderedListOutlined style={{ color: 'var(--accent)' }} />
-                  <span>分集列表</span>
-                  <Tag color="orange" style={{ borderRadius: 999 }}>{episodes.length}集</Tag>
+                  <span>{info?.link_type === 'space' ? '投稿列表' : '分集列表'}</span>
+                  <Tag color="orange" style={{ borderRadius: 999 }}>{episodes.length}{info?.link_type === 'space' ? '个' : '集'}</Tag>
                 </Space>
               }
             >
@@ -393,7 +422,7 @@ export default function DownloadPage() {
                   pageSize,
                   showSizeChanger: true,
                   pageSizeOptions: [20, 50, 100, 200],
-                  showTotal: t => `共 ${t} 集`,
+                  showTotal: t => `共 ${t} ${info?.link_type === 'space' ? '个' : '集'}`,
                   onShowSizeChange: (_, size) => {
                     setPageSize(size)
                     localStorage.setItem(LS_PAGE_SIZE, String(size))
@@ -406,7 +435,7 @@ export default function DownloadPage() {
                 }}
                 footer={() => (
                   <Space wrap>
-                    <Text>已选 <Text strong style={{ color: 'var(--accent)' }}>{selected.length}</Text>/{episodes.length} 集</Text>
+                    <Text>已选 <Text strong style={{ color: 'var(--accent)' }}>{selected.length}</Text>/{episodes.length} {info?.link_type === 'space' ? '个' : '集'}</Text>
                     <Button size="small" onClick={() => setSelected(episodes.map(e => e.aid))}>全选</Button>
                     <Button size="small" onClick={() => setSelected([])}>全不选</Button>
                   </Space>
@@ -475,7 +504,7 @@ export default function DownloadPage() {
                   disabled={selected.length === 0}
                   block={isMobile}
                 >
-                  下载 {selected.length} 集
+                  下载 {selected.length} {info?.link_type === 'space' ? '个' : '集'}
                 </Button>
               </div>
             </Card>

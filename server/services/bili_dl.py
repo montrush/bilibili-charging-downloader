@@ -478,3 +478,98 @@ def download_one(aid, download_dir, cookie=None, on_proc=None):
         return False, 'timeout'
     except Exception as e:
         return False, str(e)
+
+
+# ====================== v1.0.11: 按UP主下载全部投稿 ======================
+
+def _parse_length(s):
+    """B站投稿列表 length 字段是 "mm:ss" / "hh:mm:ss" 字符串 → 秒数."""
+    try:
+        parts = [int(x) for x in str(s).split(':')]
+        sec = 0
+        for p in parts:
+            sec = sec * 60 + p
+        return sec
+    except Exception:
+        return 0
+
+
+def fetch_space_owner(mid, cookie=None):
+    """UP主资料(名字/头像/粉丝), 供状态窗口展示. card接口无需wbi."""
+    import requests
+    headers = dict(HEADERS)
+    if cookie:
+        headers['Cookie'] = cookie
+    headers['Referer'] = f'https://space.bilibili.com/{mid}/upload/video'
+    try:
+        r = requests.get('https://api.bilibili.com/x/web-interface/card',
+                         params={'mid': mid}, headers=headers, timeout=15)
+        d = r.json()
+        if d.get('code') == 0:
+            c = d.get('data', {}).get('card', {}) or {}
+            return {'name': c.get('name', ''), 'face': (c.get('face') or '').replace('http://', 'https://'),
+                    'sign': c.get('sign', ''),
+                    'fans': (d.get('data', {}).get('follower') or 0)}
+    except Exception:
+        pass
+    return None
+
+
+def fetch_space_videos(mid, cookie=None, max_pages=200):
+    """UP主全部投稿(x/space/wbi/arc/search 分页抓全, 每页50, 新→旧).
+
+    返回 {'owner':{name,face,sign,fans}, 'total':n, 'videos':[{aid,bvid,title,date,duration,pic,play}]}
+    或 None(接口失败). WBI签名失败(-403)自动刷新key重试一次.
+    """
+    import requests, time as _t
+    from . import wbi
+    headers = dict(HEADERS)
+    if cookie:
+        headers['Cookie'] = cookie
+    headers['Referer'] = f'https://space.bilibili.com/{mid}/upload/video'
+
+    def _page(pn, refresh=False):
+        if refresh:
+            wbi.invalidate_wbi_keys()
+        base = {'mid': mid, 'pn': pn, 'ps': 50, 'tid': 0, 'keyword': '',
+                'order': 'pubdate', 'platform': 'web', 'web_location': '1550101'}
+        params = wbi.sign_wbi(base, headers)
+        r = requests.get('https://api.bilibili.com/x/space/wbi/arc/search',
+                         params=params, headers=headers, timeout=20)
+        d = r.json()
+        if d.get('code') != 0:
+            return None, d.get('code')
+        return d.get('data') or {}, 0
+
+    videos = []
+    total = None
+    for pn in range(1, max_pages + 1):
+        data, code = _page(pn)
+        if data is None and code == -403:
+            data, code = _page(pn, refresh=True)   # key过期重签一次
+        if data is None:
+            break
+        if total is None:
+            total = int((data.get('page') or {}).get('count') or 0)
+        lst = data.get('list') or {}
+        vlist = lst.get('vlist', []) if isinstance(lst, dict) else (lst or [])
+        if not vlist:
+            break
+        for v in vlist:
+            videos.append({
+                'aid': str(v.get('aid', '')),
+                'bvid': v.get('bvid', ''),
+                'title': v.get('title', ''),
+                'date': datetime.datetime.fromtimestamp(v.get('created', 0)).strftime('%Y-%m-%d') if v.get('created') else '',
+                'duration': _parse_length(v.get('length', 0)),
+                'pic': (v.get('pic') or '').replace('http://', 'https://'),
+                'play': v.get('play', 0),
+            })
+        if total and len(videos) >= total:
+            break
+        # ⚠arc/search 的 page 字段只有 pn/ps/count 无 pages, 终止条件=取满total或vlist空(上方)
+        _t.sleep(0.25)   # 翻页限速礼貌间隔
+    if not videos:
+        return None
+    owner = fetch_space_owner(mid, cookie) or {'name': '', 'face': '', 'sign': '', 'fans': 0}
+    return {'owner': owner, 'total': total or len(videos), 'videos': videos}
